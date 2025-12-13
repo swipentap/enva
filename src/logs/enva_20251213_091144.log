@@ -1,0 +1,124 @@
+2025-12-13 09:11:44 - deploy                    - INFO - 
+2025-12-13 09:11:44 - deploy                    - INFO - Deploy plan (total 67 steps, running 2-2):
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 1] skip apt-cache: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 2] RUN  apt-cache: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 3] skip apt-cache: AppArmor parser stub
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 4] skip apt-cache: disable automatic apt units
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 5] skip apt-cache: systemd sysctl override
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 6] skip apt-cache: apt-cacher-ng installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 7] skip apt-cache: apt-cacher-ng port configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 8] skip apt-cache: apt-cacher-ng service enablement
+2025-12-13 09:11:44 - deploy                    - INFO -   [ 9] skip ubuntu-tmpl: create template
+2025-12-13 09:11:44 - deploy                    - INFO -   [10] skip ubuntu-tmpl: apt cache proxy configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [11] skip ubuntu-tmpl: apt sources fix
+2025-12-13 09:11:44 - deploy                    - INFO -   [12] skip ubuntu-tmpl: system upgrade
+2025-12-13 09:11:44 - deploy                    - INFO -   [13] skip ubuntu-tmpl: openssh-server installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [14] skip ubuntu-tmpl: SSH service enablement
+2025-12-13 09:11:44 - deploy                    - INFO -   [15] skip ubuntu-tmpl: base tools installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [16] skip ubuntu-tmpl: template cleanup
+2025-12-13 09:11:44 - deploy                    - INFO -   [17] skip ubuntu-tmpl: template archive creation
+2025-12-13 09:11:44 - deploy                    - INFO -   [18] skip pgsql: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [19] skip pgsql: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [20] skip pgsql: postgresql installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [21] skip pgsql: postgresql service configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [22] skip pgsql: postgresql files configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [23] skip pgsql: postgresql password setup
+2025-12-13 09:11:44 - deploy                    - INFO -   [24] skip haproxy: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [25] skip haproxy: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [26] skip haproxy: haproxy installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [27] skip haproxy: haproxy configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [28] skip haproxy: haproxy systemd override
+2025-12-13 09:11:44 - deploy                    - INFO -   [29] skip haproxy: haproxy service enablement
+2025-12-13 09:11:44 - deploy                    - INFO -   [30] skip dns: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [31] skip dns: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [32] skip dns: dotnet installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [33] skip dns: disable systemd resolved
+2025-12-13 09:11:44 - deploy                    - INFO -   [34] skip dns: sins dns installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [35] skip dns: sins dns service configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [36] skip dns: sins dns service enablement
+2025-12-13 09:11:44 - deploy                    - INFO -   [37] skip glusterfs-node-1: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [38] skip glusterfs-node-1: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [39] skip glusterfs-node-1: glusterfs server installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [40] skip glusterfs-node-2: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [41] skip glusterfs-node-2: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [42] skip glusterfs-node-2: glusterfs server installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [43] skip glusterfs-node-3: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [44] skip glusterfs-node-3: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [45] skip glusterfs-node-3: glusterfs server installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [46] skip backup: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [47] skip backup: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [48] skip backup: base tools installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [49] skip k3s-control: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [50] skip k3s-control: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [51] skip k3s-control: lxc sysctl access configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [52] skip k3s-control: k3s installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [53] skip k3s-worker-1: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [54] skip k3s-worker-1: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [55] skip k3s-worker-1: lxc sysctl access configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [56] skip k3s-worker-1: k3s installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [57] skip k3s-worker-2: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [58] skip k3s-worker-2: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [59] skip k3s-worker-2: lxc sysctl access configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [60] skip k3s-worker-2: k3s installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [61] skip k3s-worker-3: create container
+2025-12-13 09:11:44 - deploy                    - INFO -   [62] skip k3s-worker-3: cloud-init wait
+2025-12-13 09:11:44 - deploy                    - INFO -   [63] skip k3s-worker-3: lxc sysctl access configuration
+2025-12-13 09:11:44 - deploy                    - INFO -   [64] skip k3s-worker-3: k3s installation
+2025-12-13 09:11:44 - deploy                    - INFO -   [65] skip kubernetes: setup kubernetes
+2025-12-13 09:11:44 - deploy                    - INFO -   [66] skip glusterfs: setup glusterfs
+2025-12-13 09:11:44 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:44 - deploy                    - INFO - Executing Deployment
+2025-12-13 09:11:44 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:44 - deploy                    - INFO - Skipping container 'apt-cache' creation (step 1 < start_step 2)
+2025-12-13 09:11:44 - deploy                    - INFO - Setting up SSH connection to container apt-cache...
+2025-12-13 09:11:44 - ssh                       - INFO - SSH connection established to jaal@10.11.4.20
+2025-12-13 09:11:46 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 09:11:46 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:46 - deploy                    - INFO - [Overall: 2%] [Step: 2/67] Executing: apt-cache - cloud-init wait
+2025-12-13 09:11:46 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:46 - ssh                       - INFO - Running: command -v cloud-init
+2025-12-13 09:11:46 - cloud_init_wait           - INFO - cloud-init not found, skipping
+2025-12-13 09:11:46 - deploy                    - INFO - Action 'cloud-init wait' for container 'apt-cache' completed successfully
+2025-12-13 09:11:46 - deploy                    - INFO - Reached end step 2, stopping action execution
+2025-12-13 09:11:46 - ssh                       - INFO - SSH connection closed to jaal@10.11.4.20
+2025-12-13 09:11:46 - deploy                    - INFO - Reached end step 2, stopping deployment
+2025-12-13 09:11:46 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:46 - deploy                    - INFO - Deploy Complete!
+2025-12-13 09:11:46 - deploy                    - INFO - ==================================================
+2025-12-13 09:11:46 - deploy                    - INFO - Containers:
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4020: apt-cache (10.11.4.20)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4018: pgsql (10.11.4.18)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4017: haproxy (10.11.4.17)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4019: dns (10.11.4.19)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4011: k3s-control (10.11.4.11)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4012: k3s-worker-1 (10.11.4.12)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4013: k3s-worker-2 (10.11.4.13)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4014: k3s-worker-3 (10.11.4.14)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4021: glusterfs-node-1 (10.11.4.21)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4022: glusterfs-node-2 (10.11.4.22)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4023: glusterfs-node-3 (10.11.4.23)
+2025-12-13 09:11:46 - deploy                    - INFO -   - 4024: backup (10.11.4.24)
+2025-12-13 09:11:46 - deploy                    - INFO - PostgreSQL: 10.11.4.18:5432
+2025-12-13 09:11:46 - deploy                    - INFO -   Username: postgres
+2025-12-13 09:11:46 - deploy                    - INFO -   Password: postgres
+2025-12-13 09:11:46 - deploy                    - INFO -   Database: postgres
+2025-12-13 09:11:46 - deploy                    - INFO -   Connection: postgresql://postgres:postgres@10.11.4.18:5432/postgres
+2025-12-13 09:11:46 - deploy                    - INFO - DNS: 10.11.4.19:53 (TCP/UDP)
+2025-12-13 09:11:46 - deploy                    - INFO -   Web Interface: http://10.11.4.19:80
+2025-12-13 09:11:46 - deploy                    - INFO -   Use as DNS server: 10.11.4.19
+2025-12-13 09:11:46 - deploy                    - INFO - HAProxy: http://10.11.4.17:80 (Stats: http://10.11.4.17:8404)
+2025-12-13 09:11:46 - deploy                    - INFO - GlusterFS:
+2025-12-13 09:11:46 - deploy                    - INFO -   Volume: shared-storage
+2025-12-13 09:11:46 - deploy                    - INFO -   Mount: /mnt/gluster on all nodes
+2025-12-13 09:11:46 - deploy                    - INFO - CockroachDB:
+2025-12-13 09:11:46 - deploy                    - INFO -   SQL: 10.11.4.11:32657 (postgresql://root:root123@10.11.4.11:32657/defaultdb?sslmode=disable)
+2025-12-13 09:11:46 - deploy                    - INFO -   Admin UI: http://10.11.4.11:30080
+2025-12-13 09:11:46 - deploy                    - INFO -   Username: root
+2025-12-13 09:11:46 - deploy                    - INFO -   Password: root123
+2025-12-13 09:11:46 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 09:11:46 - pct                       - INFO - Running in container 4011: export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}' 2>/dev/null || echo 'admin'
+2025-12-13 09:11:46 - ssh                       - INFO - Running: pct exec 4011 -- bash -c "echo ZXhwb3J0IEtVQkVDT05GSUc9L2V0Yy9yYW5jaGVyL2szcy9rM3MueWFtbCAmJiAvdXNyL2xvY2FsL2Jpbi9rdWJlY3RsIGdldCBzZWNyZXQgLS1uYW1lc3BhY2UgY2F0dGxlLXN5c3RlbSBib290c3RyYXAtc2VjcmV0IC1vIGdvLXRlbXBsYXRlPSd7ey5kYXRhLmJvb3RzdHJhcFBhc3N3b3JkfGJhc2U2NGRlY29kZX19JyAyPi9kZXYvbnVsbCB8fCBlY2hvICdhZG1pbic= | base64 -d | bash"
+2025-12-13 09:11:48 - deploy                    - INFO - Rancher: https://10.11.4.11:30443
+2025-12-13 09:11:48 - deploy                    - INFO -   Bootstrap Password: admin
+2025-12-13 09:11:48 - deploy                    - INFO - ✓ All service ports are responding
+2025-12-13 09:11:48 - ssh                       - INFO - SSH connection closed to root@10.11.4.4

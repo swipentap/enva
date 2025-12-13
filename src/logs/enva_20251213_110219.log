@@ -1,0 +1,619 @@
+2025-12-13 11:02:19 - main                      - INFO - ==================================================
+2025-12-13 11:02:19 - main                      - INFO - Redeploy: Cleanup and Deploy
+2025-12-13 11:02:19 - main                      - INFO - ==================================================
+2025-12-13 11:02:19 - main                      - INFO - 
+[1/2] Running cleanup...
+2025-12-13 11:02:19 - cleanup                   - INFO - ==================================================
+2025-12-13 11:02:19 - cleanup                   - INFO - Cleaning Up Lab Environment
+2025-12-13 11:02:19 - cleanup                   - INFO - ==================================================
+2025-12-13 11:02:19 - cleanup                   - INFO - Destroying ALL containers and templates...
+2025-12-13 11:02:19 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:02:19 - cleanup                   - INFO - Stopping and destroying containers...
+2025-12-13 11:02:19 - ssh                       - INFO - Running: pct status 
+2025-12-13 11:02:21 - cleanup                   - INFO - No containers found
+2025-12-13 11:02:21 - cleanup                   - INFO - Removing templates...
+2025-12-13 11:02:21 - cleanup                   - INFO - Cleaning template directory /var/lib/vz/template/cache...
+2025-12-13 11:02:21 - ssh                       - INFO - Running: find /var/lib/vz/template/cache -maxdepth 1 -type f -name '*.tar.zst' -print | wc -l
+2025-12-13 11:02:21 - cleanup                   - INFO - Removing 2 template files...
+2025-12-13 11:02:21 - ssh                       - INFO - Running: find /var/lib/vz/template/cache -maxdepth 1 -type f -name '*.tar.zst' -delete || true
+2025-12-13 11:02:22 - cleanup                   - INFO - Templates removed
+2025-12-13 11:02:22 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:02:22 - main                      - INFO - 
+[2/2] Running deploy...
+2025-12-13 11:02:22 - deploy                    - INFO - 
+2025-12-13 11:02:22 - deploy                    - INFO - Deploy plan (total 67 steps, running 1-67):
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 1] RUN  apt-cache: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 2] RUN  apt-cache: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 3] RUN  apt-cache: AppArmor parser stub
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 4] RUN  apt-cache: disable automatic apt units
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 5] RUN  apt-cache: systemd sysctl override
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 6] RUN  apt-cache: apt-cacher-ng installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 7] RUN  apt-cache: apt-cacher-ng port configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 8] RUN  apt-cache: apt-cacher-ng service enablement
+2025-12-13 11:02:22 - deploy                    - INFO -   [ 9] RUN  ubuntu-tmpl: create template
+2025-12-13 11:02:22 - deploy                    - INFO -   [10] RUN  ubuntu-tmpl: apt cache proxy configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [11] RUN  ubuntu-tmpl: apt sources fix
+2025-12-13 11:02:22 - deploy                    - INFO -   [12] RUN  ubuntu-tmpl: system upgrade
+2025-12-13 11:02:22 - deploy                    - INFO -   [13] RUN  ubuntu-tmpl: openssh-server installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [14] RUN  ubuntu-tmpl: SSH service enablement
+2025-12-13 11:02:22 - deploy                    - INFO -   [15] RUN  ubuntu-tmpl: base tools installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [16] RUN  ubuntu-tmpl: template cleanup
+2025-12-13 11:02:22 - deploy                    - INFO -   [17] RUN  ubuntu-tmpl: template archive creation
+2025-12-13 11:02:22 - deploy                    - INFO -   [18] RUN  pgsql: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [19] RUN  pgsql: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [20] RUN  pgsql: postgresql installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [21] RUN  pgsql: postgresql service configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [22] RUN  pgsql: postgresql files configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [23] RUN  pgsql: postgresql password setup
+2025-12-13 11:02:22 - deploy                    - INFO -   [24] RUN  haproxy: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [25] RUN  haproxy: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [26] RUN  haproxy: haproxy installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [27] RUN  haproxy: haproxy configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [28] RUN  haproxy: haproxy systemd override
+2025-12-13 11:02:22 - deploy                    - INFO -   [29] RUN  haproxy: haproxy service enablement
+2025-12-13 11:02:22 - deploy                    - INFO -   [30] RUN  dns: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [31] RUN  dns: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [32] RUN  dns: dotnet installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [33] RUN  dns: disable systemd resolved
+2025-12-13 11:02:22 - deploy                    - INFO -   [34] RUN  dns: sins dns installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [35] RUN  dns: sins dns service configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [36] RUN  dns: sins dns service enablement
+2025-12-13 11:02:22 - deploy                    - INFO -   [37] RUN  glusterfs-node-1: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [38] RUN  glusterfs-node-1: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [39] RUN  glusterfs-node-1: glusterfs server installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [40] RUN  glusterfs-node-2: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [41] RUN  glusterfs-node-2: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [42] RUN  glusterfs-node-2: glusterfs server installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [43] RUN  glusterfs-node-3: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [44] RUN  glusterfs-node-3: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [45] RUN  glusterfs-node-3: glusterfs server installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [46] RUN  backup: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [47] RUN  backup: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [48] RUN  backup: base tools installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [49] RUN  k3s-control: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [50] RUN  k3s-control: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [51] RUN  k3s-control: lxc sysctl access configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [52] RUN  k3s-control: k3s installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [53] RUN  k3s-worker-1: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [54] RUN  k3s-worker-1: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [55] RUN  k3s-worker-1: lxc sysctl access configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [56] RUN  k3s-worker-1: k3s installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [57] RUN  k3s-worker-2: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [58] RUN  k3s-worker-2: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [59] RUN  k3s-worker-2: lxc sysctl access configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [60] RUN  k3s-worker-2: k3s installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [61] RUN  k3s-worker-3: create container
+2025-12-13 11:02:22 - deploy                    - INFO -   [62] RUN  k3s-worker-3: cloud-init wait
+2025-12-13 11:02:22 - deploy                    - INFO -   [63] RUN  k3s-worker-3: lxc sysctl access configuration
+2025-12-13 11:02:22 - deploy                    - INFO -   [64] RUN  k3s-worker-3: k3s installation
+2025-12-13 11:02:22 - deploy                    - INFO -   [65] RUN  kubernetes: setup kubernetes
+2025-12-13 11:02:22 - deploy                    - INFO -   [66] RUN  glusterfs: setup glusterfs
+2025-12-13 11:02:22 - deploy                    - INFO - ==================================================
+2025-12-13 11:02:22 - deploy                    - INFO - Executing Deployment
+2025-12-13 11:02:22 - deploy                    - INFO - ==================================================
+2025-12-13 11:02:22 - deploy                    - INFO - ==================================================
+2025-12-13 11:02:22 - deploy                    - INFO - [Overall: 1%] [Step: 1/67] Executing: apt-cache - create container
+2025-12-13 11:02:22 - deploy                    - INFO - ==================================================
+2025-12-13 11:02:22 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:02:22 - ssh                       - INFO - Running: pct destroy 4020 --force
+2025-12-13 11:02:26 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && echo exists || echo missing
+2025-12-13 11:02:26 - template                  - INFO - Base template not found. Downloading ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst...
+2025-12-13 11:02:26 - template                  - INFO - Running: pveam download local ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst
+2025-12-13 11:02:26 - ssh                       - INFO - Running: pveam download local ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst
+2025-12-13 11:02:32 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && echo exists || echo missing
+2025-12-13 11:02:32 - template                  - INFO - Template ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst downloaded successfully
+2025-12-13 11:02:32 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && test -r /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && echo 'valid' || echo 'invalid'
+2025-12-13 11:02:32 - create_container          - INFO - Checking if container 4020 already exists...
+2025-12-13 11:02:32 - ssh                       - INFO - Running: pct list | grep '^4020 '
+2025-12-13 11:02:34 - create_container          - INFO - Creating container 4020 from template...
+2025-12-13 11:02:34 - ssh                       - INFO - Running: pct create 4020 /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst --hostname apt-cache --memory 2048 --swap 2048 --cores 4 --net0 name=eth0,bridge=vmbr0,ip=10.11.4.20/24,gw=10.11.4.253 --rootfs sdb:20 --unprivileged 1 --ostype ubuntu --arch amd64
+2025-12-13 11:02:42 - create_container          - INFO - Setting container features...
+2025-12-13 11:02:42 - ssh                       - INFO - Running: pct set 4020 --features nesting=1,keyctl=1,fuse=1
+2025-12-13 11:02:44 - create_container          - INFO - Setting autostart for container 4020 (onboot=1)...
+2025-12-13 11:02:44 - ssh                       - INFO - Running: pct set 4020 --onboot 1
+2025-12-13 11:02:45 - create_container          - INFO - Starting container 4020...
+2025-12-13 11:02:45 - ssh                       - INFO - Running: pct start 4020
+2025-12-13 11:02:50 - create_container          - INFO - Bringing up network interface...
+2025-12-13 11:02:50 - pct                       - INFO - Running in container 4020: ping -c 1 8.8.8.8
+2025-12-13 11:02:50 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo cGluZyAtYyAxIDguOC44Ljg= | base64 -d | bash"
+2025-12-13 11:02:52 - create_container          - INFO - Network interface is up and reachable
+2025-12-13 11:02:52 - pct                       - INFO - Running in container 4020: id -u jaal >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo jaal
+2025-12-13 11:02:52 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo aWQgLXUgamFhbCA+L2Rldi9udWxsIDI+JjEgfHwgdXNlcmFkZCAtbSAtcyAvYmluL2Jhc2ggLUcgc3VkbyBqYWFs | base64 -d | bash"
+2025-12-13 11:02:53 - pct                       - INFO - Running in container 4020: echo 'jaal:jaal123' | chpasswd
+2025-12-13 11:02:53 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo ZWNobyAnamFhbDpqYWFsMTIzJyB8IGNocGFzc3dk | base64 -d | bash"
+2025-12-13 11:02:55 - create_container          - INFO - Password set for user jaal
+2025-12-13 11:02:55 - pct                       - INFO - Running in container 4020: printf 'jaal ALL=(ALL) NOPASSWD: ALL
+' > /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:02:55 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo cHJpbnRmICdqYWFsIEFMTD0oQUxMKSBOT1BBU1NXRDogQUxMCicgPiAvZXRjL3N1ZG9lcnMuZC9qYWFsIDI+JjE= | base64 -d | bash"
+2025-12-13 11:02:56 - pct                       - INFO - Running in container 4020: chmod 440 /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:02:56 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo Y2htb2QgNDQwIC9ldGMvc3Vkb2Vycy5kL2phYWwgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:02:57 - pct                       - INFO - Running in container 4020: mkdir -p /home/jaal/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /home/jaal/.ssh/authorized_keys && chmod 600 /home/jaal/.ssh/authorized_keys && chown jaal:jaal /home/jaal/.ssh/authorized_keys
+2025-12-13 11:02:57 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo bWtkaXIgLXAgL2hvbWUvamFhbC8uc3NoICYmIGVjaG8gYzNOb0xXVmtNalUxTVRrZ1FVRkJRVU16VG5waFF6RnNXa1JKTVU1VVJUVkJRVUZCU1VSeVVXTnJaRWxUVEN0V0swYzBNalJTVG05WWNHbFVVR05DZWxwNFpUQkxPVXBQYldkWlpUQnZOSGtnYW1GaGJFQjFZblZ1ZEhVdFpHVnphM1J2Y0E9PSB8IGJhc2U2NCAtZCA+IC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2htb2QgNjAwIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2hvd24gamFhbDpqYWFsIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:02:59 - pct                       - INFO - Running in container 4020: mkdir -p /root/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
+2025-12-13 11:02:59 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo bWtkaXIgLXAgL3Jvb3QvLnNzaCAmJiBlY2hvIGMzTm9MV1ZrTWpVMU1Ua2dRVUZCUVVNelRucGhRekZzV2tSSk1VNVVSVFZCUVVGQlNVUnlVV05yWkVsVFRDdFdLMGMwTWpSU1RtOVljR2xVVUdOQ2VscDRaVEJMT1VwUGJXZFpaVEJ2TkhrZ2FtRmhiRUIxWW5WdWRIVXRaR1Z6YTNSdmNBPT0gfCBiYXNlNjQgLWQgPiAvcm9vdC8uc3NoL2F1dGhvcml6ZWRfa2V5cyAmJiBjaG1vZCA2MDAgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:03:00 - pct                       - INFO - Running in container 4020: test -f /home/jaal/.ssh/authorized_keys && test -f /root/.ssh/authorized_keys && echo 'keys_exist' || echo 'keys_missing'
+2025-12-13 11:03:00 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo dGVzdCAtZiAvaG9tZS9qYWFsLy5zc2gvYXV0aG9yaXplZF9rZXlzICYmIHRlc3QgLWYgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgZWNobyAna2V5c19leGlzdCcgfHwgZWNobyAna2V5c19taXNzaW5nJw== | base64 -d | bash"
+2025-12-13 11:03:01 - common                    - INFO - SSH key setup verified successfully
+2025-12-13 11:03:01 - pct                       - INFO - Running in container 4020: dpkg -l | grep -q '^ii.*openssh-server' || echo 'not_installed'
+2025-12-13 11:03:01 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo ZHBrZyAtbCB8IGdyZXAgLXEgJ15paS4qb3BlbnNzaC1zZXJ2ZXInIHx8IGVjaG8gJ25vdF9pbnN0YWxsZWQn | base64 -d | bash"
+2025-12-13 11:03:03 - pct                       - INFO - Running in container 4020: systemctl enable ssh
+2025-12-13 11:03:03 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo c3lzdGVtY3RsIGVuYWJsZSBzc2g= | base64 -d | bash"
+2025-12-13 11:03:05 - pct                       - INFO - Running in container 4020: systemctl start ssh
+2025-12-13 11:03:05 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo c3lzdGVtY3RsIHN0YXJ0IHNzaA== | base64 -d | bash"
+2025-12-13 11:03:06 - create_container          - INFO - Waiting for container to be ready with SSH connectivity (up to 10 minutes)...
+2025-12-13 11:03:06 - ssh                       - INFO - Running: pct status 4020 2>&1
+2025-12-13 11:03:08 - ssh                       - INFO - Running: ping -c 1 -W 2 10.11.4.20 2>&1
+2025-12-13 11:03:08 - pct                       - INFO - Container is up!
+2025-12-13 11:03:08 - create_container          - INFO - Container 4020 created successfully
+2025-12-13 11:03:08 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:03:08 - deploy                    - INFO - Container 'apt-cache' created successfully
+2025-12-13 11:03:08 - deploy                    - INFO - Setting up SSH connection to container apt-cache...
+2025-12-13 11:03:08 - ssh                       - INFO - SSH connection established to jaal@10.11.4.20
+2025-12-13 11:03:10 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - deploy                    - INFO - [Overall: 2%] [Step: 2/67] Executing: apt-cache - cloud-init wait
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - ssh                       - INFO - Running: command -v cloud-init
+2025-12-13 11:03:10 - cloud_init_wait           - INFO - cloud-init not found, skipping
+2025-12-13 11:03:10 - deploy                    - INFO - Action 'cloud-init wait' for container 'apt-cache' completed successfully
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - deploy                    - INFO - [Overall: 4%] [Step: 3/67] Executing: apt-cache - AppArmor parser stub
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - ssh                       - INFO - Running: APPARMOR_BIN=/usr/sbin/apparmor_parser
+if command -v dpkg-divert >/dev/null 2>&1 && [ -f "$APPARMOR_BIN" ]; then
+  dpkg-divert --quiet --local --rename --add "$APPARMOR_BIN" >/dev/null 2>&1 || true
+  if [ -f "$APPARMOR_BIN.distrib" ]; then
+    cat <<'APPARMOR_STUB' > "$APPARMOR_BIN"
+#!/bin/sh
+if [ "$1" = "--version" ] || [ "$1" = "-V" ]; then
+  exec /usr/sbin/apparmor_parser.distrib "$@"
+fi
+exit 0
+APPARMOR_STUB
+    chmod +x "$APPARMOR_BIN" 2>/dev/null || true
+  fi
+fi
+echo apparmor_stub_done
+2025-12-13 11:03:10 - deploy                    - INFO - Action 'AppArmor parser stub' for container 'apt-cache' completed successfully
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - deploy                    - INFO - [Overall: 5%] [Step: 4/67] Executing: apt-cache - disable automatic apt units
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - ssh                       - INFO - Running: for unit in apt-daily.service apt-daily.timer apt-daily-upgrade.service apt-daily-upgrade.timer; do systemctl stop "$unit" 2>/dev/null || true; systemctl disable "$unit" 2>/dev/null || true; systemctl mask "$unit" 2>/dev/null || true; done
+2025-12-13 11:03:10 - deploy                    - INFO - Action 'disable automatic apt units' for container 'apt-cache' completed successfully
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - deploy                    - INFO - [Overall: 7%] [Step: 5/67] Executing: apt-cache - systemd sysctl override
+2025-12-13 11:03:10 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:10 - pct                       - INFO - Running in container 4020: mkdir -p /etc/systemd/system/systemd-sysctl.service.d 2>&1
+2025-12-13 11:03:10 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo bWtkaXIgLXAgL2V0Yy9zeXN0ZW1kL3N5c3RlbS9zeXN0ZW1kLXN5c2N0bC5zZXJ2aWNlLmQgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:03:11 - pct                       - INFO - Running in container 4020: printf '[Service]
+ImportCredential=
+' > /etc/systemd/system/systemd-sysctl.service.d/override.conf 2>&1
+2025-12-13 11:03:11 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo cHJpbnRmICdbU2VydmljZV0KSW1wb3J0Q3JlZGVudGlhbD0KJyA+IC9ldGMvc3lzdGVtZC9zeXN0ZW0vc3lzdGVtZC1zeXNjdGwuc2VydmljZS5kL292ZXJyaWRlLmNvbmYgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:03:13 - pct                       - INFO - Running in container 4020: systemctl daemon-reload && systemctl stop systemd-sysctl.service 2>/dev/null || true && systemctl start systemd-sysctl.service 2>/dev/null || true
+2025-12-13 11:03:13 - ssh                       - INFO - Running: pct exec 4020 -- bash -c "echo c3lzdGVtY3RsIGRhZW1vbi1yZWxvYWQgJiYgc3lzdGVtY3RsIHN0b3Agc3lzdGVtZC1zeXNjdGwuc2VydmljZSAyPi9kZXYvbnVsbCB8fCB0cnVlICYmIHN5c3RlbWN0bCBzdGFydCBzeXN0ZW1kLXN5c2N0bC5zZXJ2aWNlIDI+L2Rldi9udWxsIHx8IHRydWU= | base64 -d | bash"
+2025-12-13 11:03:14 - deploy                    - INFO - Action 'systemd sysctl override' for container 'apt-cache' completed successfully
+2025-12-13 11:03:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:14 - deploy                    - INFO - [Overall: 8%] [Step: 6/67] Executing: apt-cache - apt-cacher-ng installation
+2025-12-13 11:03:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:14 - install_apt_cacher        - INFO - Installing apt-cacher-ng package...
+2025-12-13 11:03:14 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:03:20 - ssh                       - INFO - Running: sudo -n bash -c 'echo ZWNobyAnYXB0LWNhY2hlci1uZyBhcHQtY2FjaGVyLW5nL3R1bm5lbGVuYWJsZSBib29sZWFuIGZhbHNlCmFwdC1jYWNoZXItbmcgYXB0LWNhY2hlci1uZy9iaW5kYWRkcmVzcyBzdHJpbmcgMC4wLjAuMAonIHwgZGViY29uZi1zZXQtc2VsZWN0aW9ucw== | base64 -d | bash'
+2025-12-13 11:03:20 - ssh                       - INFO - Running: DEBIAN_PRIORITY=critical DEBIAN_FRONTEND=noninteractive sudo -n apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold -o DPkg::Pre-Install-Pkgs= install apt-cacher-ng < /dev/null
+2025-12-13 11:03:26 - ssh                       - INFO - Running: dpkg -l | grep -q '^ii.*apt-cacher-ng' && echo installed || echo not_installed
+2025-12-13 11:03:26 - ssh                       - INFO - Running: systemctl list-unit-files apt-cacher-ng.service 2>&1 | grep -q apt-cacher-ng.service && echo 'exists' || echo 'missing'
+2025-12-13 11:03:26 - deploy                    - INFO - Action 'apt-cacher-ng installation' for container 'apt-cache' completed successfully
+2025-12-13 11:03:26 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:26 - deploy                    - INFO - [Overall: 10%] [Step: 7/67] Executing: apt-cache - apt-cacher-ng port configuration
+2025-12-13 11:03:26 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:26 - ssh                       - INFO - Running: sudo -n bash -c 'mkdir -p /etc/apt-cacher-ng 2>&1'
+2025-12-13 11:03:26 - ssh                       - INFO - Running: sudo -n bash -c 'echo c2VkIC1pICdzL14jXHMqUG9ydDouKi9Qb3J0OiAzMTQyLycgL2V0Yy9hcHQtY2FjaGVyLW5nL2FjbmcuY29uZiAyPiYx | base64 -d | bash'
+2025-12-13 11:03:26 - configure_cache_port      - INFO - Configuring apt-cacher-ng timeout and retry settings...
+2025-12-13 11:03:26 - ssh                       - INFO - Running: sudo -n bash -c 'echo Z3JlcCAtRSAnXiM/RGxNYXhSZXRyaWVzOicgL2V0Yy9hcHQtY2FjaGVyLW5nL2FjbmcuY29uZiB8fCBlY2hvICdub3RfZm91bmQn | base64 -d | bash'
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdEbE1heFJldHJpZXM6IDUKJyA+PiAvZXRjL2FwdC1jYWNoZXItbmcvYWNuZy5jb25mIDI+JjE= | base64 -d | bash'
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'echo Z3JlcCAtRSAnXiM/TmV0d29ya1RpbWVvdXQ6JyAvZXRjL2FwdC1jYWNoZXItbmcvYWNuZy5jb25mIHx8IGVjaG8gJ25vdF9mb3VuZCc= | base64 -d | bash'
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdOZXR3b3JrVGltZW91dDogMTIwCicgPj4gL2V0Yy9hcHQtY2FjaGVyLW5nL2FjbmcuY29uZiAyPiYx | base64 -d | bash'
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'echo Z3JlcCAtRSAnXiM/RGlzY29ubmVjdFRpbWVvdXQ6JyAvZXRjL2FwdC1jYWNoZXItbmcvYWNuZy5jb25mIHx8IGVjaG8gJ25vdF9mb3VuZCc= | base64 -d | bash'
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdEaXNjb25uZWN0VGltZW91dDogMzAKJyA+PiAvZXRjL2FwdC1jYWNoZXItbmcvYWNuZy5jb25mIDI+JjE= | base64 -d | bash'
+2025-12-13 11:03:27 - configure_cache_port      - INFO - Restarting apt-cacher-ng service to apply configuration changes...
+2025-12-13 11:03:27 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl restart apt-cacher-ng'
+2025-12-13 11:03:29 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl is-active apt-cacher-ng'
+2025-12-13 11:03:29 - deploy                    - INFO - Action 'apt-cacher-ng port configuration' for container 'apt-cache' completed successfully
+2025-12-13 11:03:29 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:29 - deploy                    - INFO - [Overall: 11%] [Step: 8/67] Executing: apt-cache - apt-cacher-ng service enablement
+2025-12-13 11:03:29 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:29 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl enable apt-cacher-ng'
+2025-12-13 11:03:30 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl restart apt-cacher-ng'
+2025-12-13 11:03:32 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl is-active apt-cacher-ng'
+2025-12-13 11:03:34 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl is-active apt-cacher-ng'
+2025-12-13 11:03:34 - deploy                    - INFO - Action 'apt-cacher-ng service enablement' for container 'apt-cache' completed successfully
+2025-12-13 11:03:34 - ssh                       - INFO - SSH connection closed to jaal@10.11.4.20
+2025-12-13 11:03:34 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:34 - deploy                    - INFO - [Overall: 13%] [Step: 9/67] Executing: ubuntu-tmpl - create container
+2025-12-13 11:03:34 - deploy                    - INFO - ==================================================
+2025-12-13 11:03:34 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:03:34 - ssh                       - INFO - Running: pct destroy 4010 --force
+2025-12-13 11:03:35 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && echo exists || echo missing
+2025-12-13 11:03:35 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && test -r /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst && echo 'valid' || echo 'invalid'
+2025-12-13 11:03:35 - create_container          - INFO - Checking if container 4010 already exists...
+2025-12-13 11:03:35 - ssh                       - INFO - Running: pct list | grep '^4010 '
+2025-12-13 11:03:37 - create_container          - INFO - Creating container 4010 from template...
+2025-12-13 11:03:37 - ssh                       - INFO - Running: pct create 4010 /var/lib/vz/template/cache/ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst --hostname ubuntu-tmpl --memory 2048 --swap 2048 --cores 4 --net0 name=eth0,bridge=vmbr0,ip=10.11.4.10/24,gw=10.11.4.253 --rootfs sdb:20 --unprivileged 1 --ostype ubuntu --arch amd64
+2025-12-13 11:03:45 - create_container          - INFO - Setting container features...
+2025-12-13 11:03:45 - ssh                       - INFO - Running: pct set 4010 --features nesting=1,keyctl=1,fuse=1
+2025-12-13 11:03:46 - create_container          - INFO - Setting autostart for container 4010 (onboot=1)...
+2025-12-13 11:03:46 - ssh                       - INFO - Running: pct set 4010 --onboot 1
+2025-12-13 11:03:48 - create_container          - INFO - Starting container 4010...
+2025-12-13 11:03:48 - ssh                       - INFO - Running: pct start 4010
+2025-12-13 11:03:53 - create_container          - INFO - Bringing up network interface...
+2025-12-13 11:03:53 - pct                       - INFO - Running in container 4010: ping -c 1 8.8.8.8
+2025-12-13 11:03:53 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cGluZyAtYyAxIDguOC44Ljg= | base64 -d | bash"
+2025-12-13 11:03:54 - create_container          - INFO - Network interface is up and reachable
+2025-12-13 11:03:54 - pct                       - INFO - Running in container 4010: id -u jaal >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo jaal
+2025-12-13 11:03:54 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo aWQgLXUgamFhbCA+L2Rldi9udWxsIDI+JjEgfHwgdXNlcmFkZCAtbSAtcyAvYmluL2Jhc2ggLUcgc3VkbyBqYWFs | base64 -d | bash"
+2025-12-13 11:03:56 - pct                       - INFO - Running in container 4010: echo 'jaal:jaal123' | chpasswd
+2025-12-13 11:03:56 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo ZWNobyAnamFhbDpqYWFsMTIzJyB8IGNocGFzc3dk | base64 -d | bash"
+2025-12-13 11:03:57 - create_container          - INFO - Password set for user jaal
+2025-12-13 11:03:57 - pct                       - INFO - Running in container 4010: printf 'jaal ALL=(ALL) NOPASSWD: ALL
+' > /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:03:57 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cHJpbnRmICdqYWFsIEFMTD0oQUxMKSBOT1BBU1NXRDogQUxMCicgPiAvZXRjL3N1ZG9lcnMuZC9qYWFsIDI+JjE= | base64 -d | bash"
+2025-12-13 11:03:59 - pct                       - INFO - Running in container 4010: chmod 440 /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:03:59 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo Y2htb2QgNDQwIC9ldGMvc3Vkb2Vycy5kL2phYWwgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:04:00 - pct                       - INFO - Running in container 4010: mkdir -p /home/jaal/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /home/jaal/.ssh/authorized_keys && chmod 600 /home/jaal/.ssh/authorized_keys && chown jaal:jaal /home/jaal/.ssh/authorized_keys
+2025-12-13 11:04:00 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo bWtkaXIgLXAgL2hvbWUvamFhbC8uc3NoICYmIGVjaG8gYzNOb0xXVmtNalUxTVRrZ1FVRkJRVU16VG5waFF6RnNXa1JKTVU1VVJUVkJRVUZCU1VSeVVXTnJaRWxUVEN0V0swYzBNalJTVG05WWNHbFVVR05DZWxwNFpUQkxPVXBQYldkWlpUQnZOSGtnYW1GaGJFQjFZblZ1ZEhVdFpHVnphM1J2Y0E9PSB8IGJhc2U2NCAtZCA+IC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2htb2QgNjAwIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2hvd24gamFhbDpqYWFsIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:04:01 - pct                       - INFO - Running in container 4010: mkdir -p /root/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
+2025-12-13 11:04:01 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo bWtkaXIgLXAgL3Jvb3QvLnNzaCAmJiBlY2hvIGMzTm9MV1ZrTWpVMU1Ua2dRVUZCUVVNelRucGhRekZzV2tSSk1VNVVSVFZCUVVGQlNVUnlVV05yWkVsVFRDdFdLMGMwTWpSU1RtOVljR2xVVUdOQ2VscDRaVEJMT1VwUGJXZFpaVEJ2TkhrZ2FtRmhiRUIxWW5WdWRIVXRaR1Z6YTNSdmNBPT0gfCBiYXNlNjQgLWQgPiAvcm9vdC8uc3NoL2F1dGhvcml6ZWRfa2V5cyAmJiBjaG1vZCA2MDAgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:04:03 - pct                       - INFO - Running in container 4010: test -f /home/jaal/.ssh/authorized_keys && test -f /root/.ssh/authorized_keys && echo 'keys_exist' || echo 'keys_missing'
+2025-12-13 11:04:03 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo dGVzdCAtZiAvaG9tZS9qYWFsLy5zc2gvYXV0aG9yaXplZF9rZXlzICYmIHRlc3QgLWYgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgZWNobyAna2V5c19leGlzdCcgfHwgZWNobyAna2V5c19taXNzaW5nJw== | base64 -d | bash"
+2025-12-13 11:04:04 - common                    - INFO - SSH key setup verified successfully
+2025-12-13 11:04:04 - pct                       - INFO - Running in container 4010: dpkg -l | grep -q '^ii.*openssh-server' || echo 'not_installed'
+2025-12-13 11:04:04 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo ZHBrZyAtbCB8IGdyZXAgLXEgJ15paS4qb3BlbnNzaC1zZXJ2ZXInIHx8IGVjaG8gJ25vdF9pbnN0YWxsZWQn | base64 -d | bash"
+2025-12-13 11:04:05 - pct                       - INFO - Running in container 4010: systemctl enable ssh
+2025-12-13 11:04:05 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c3lzdGVtY3RsIGVuYWJsZSBzc2g= | base64 -d | bash"
+2025-12-13 11:04:07 - pct                       - INFO - Running in container 4010: systemctl start ssh
+2025-12-13 11:04:07 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c3lzdGVtY3RsIHN0YXJ0IHNzaA== | base64 -d | bash"
+2025-12-13 11:04:09 - create_container          - INFO - Waiting for container to be ready with SSH connectivity (up to 10 minutes)...
+2025-12-13 11:04:09 - ssh                       - INFO - Running: pct status 4010 2>&1
+2025-12-13 11:04:10 - ssh                       - INFO - Running: ping -c 1 -W 2 10.11.4.10 2>&1
+2025-12-13 11:04:10 - pct                       - INFO - Container is up!
+2025-12-13 11:04:10 - create_container          - INFO - Container 4010 created successfully
+2025-12-13 11:04:10 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:04:10 - deploy                    - INFO - Container 'ubuntu-tmpl' created successfully
+2025-12-13 11:04:10 - deploy                    - INFO - Setting up SSH connection to container ubuntu-tmpl...
+2025-12-13 11:04:10 - ssh                       - INFO - SSH connection established to jaal@10.11.4.10
+2025-12-13 11:04:12 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:12 - deploy                    - INFO - [Overall: 14%] [Step: 10/67] Executing: ubuntu-tmpl - apt cache proxy configuration
+2025-12-13 11:04:12 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:12 - pct                       - INFO - Running in container 4010: printf 'Acquire::http::Proxy "http://10.11.4.20:3142";
+' > /etc/apt/apt.conf.d/01proxy 2>&1
+2025-12-13 11:04:12 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cHJpbnRmICdBY3F1aXJlOjpodHRwOjpQcm94eSAiaHR0cDovLzEwLjExLjQuMjA6MzE0MiI7CicgPiAvZXRjL2FwdC9hcHQuY29uZi5kLzAxcHJveHkgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:04:14 - deploy                    - INFO - Action 'apt cache proxy configuration' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:04:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:14 - deploy                    - INFO - [Overall: 16%] [Step: 11/67] Executing: ubuntu-tmpl - apt sources fix
+2025-12-13 11:04:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:14 - pct                       - INFO - Running in container 4010: sed -i 's/oracular/plucky/g' /etc/apt/sources.list 2>&1
+2025-12-13 11:04:14 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c2VkIC1pICdzL29yYWN1bGFyL3BsdWNreS9nJyAvZXRjL2FwdC9zb3VyY2VzLmxpc3QgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:04:15 - fix_apt_sources           - INFO - sources.list not found (may use sources.list.d), skipping fix
+2025-12-13 11:04:15 - pct                       - INFO - Running in container 4010: sed -i 's/old-releases.ubuntu.com/archive.ubuntu.com/g' /etc/apt/sources.list 2>&1
+2025-12-13 11:04:15 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c2VkIC1pICdzL29sZC1yZWxlYXNlcy51YnVudHUuY29tL2FyY2hpdmUudWJ1bnR1LmNvbS9nJyAvZXRjL2FwdC9zb3VyY2VzLmxpc3QgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:04:16 - fix_apt_sources           - INFO - sources.list not found (may use sources.list.d), skipping fix
+2025-12-13 11:04:16 - deploy                    - INFO - Action 'apt sources fix' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:04:16 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:16 - deploy                    - INFO - [Overall: 17%] [Step: 12/67] Executing: ubuntu-tmpl - system upgrade
+2025-12-13 11:04:16 - deploy                    - INFO - ==================================================
+2025-12-13 11:04:16 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:04:21 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:04:23 - ssh                       - INFO - Running: sudo -n apt-get dist-upgrade -y
+2025-12-13 11:05:11 - deploy                    - INFO - Action 'system upgrade' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:05:11 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:11 - deploy                    - INFO - [Overall: 19%] [Step: 13/67] Executing: ubuntu-tmpl - openssh-server installation
+2025-12-13 11:05:11 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:11 - pct                       - INFO - Running in container 4010: apt -y install openssh-server
+2025-12-13 11:05:11 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo YXB0IC15IGluc3RhbGwgb3BlbnNzaC1zZXJ2ZXI= | base64 -d | bash"
+2025-12-13 11:05:14 - deploy                    - INFO - Action 'openssh-server installation' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:05:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:14 - deploy                    - INFO - [Overall: 20%] [Step: 14/67] Executing: ubuntu-tmpl - SSH service enablement
+2025-12-13 11:05:14 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:14 - pct                       - INFO - Running in container 4010: systemctl enable ssh
+2025-12-13 11:05:14 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c3lzdGVtY3RsIGVuYWJsZSBzc2g= | base64 -d | bash"
+2025-12-13 11:05:16 - pct                       - INFO - Running in container 4010: systemctl start ssh
+2025-12-13 11:05:16 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo c3lzdGVtY3RsIHN0YXJ0IHNzaA== | base64 -d | bash"
+2025-12-13 11:05:18 - deploy                    - INFO - Action 'SSH service enablement' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:05:18 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:18 - deploy                    - INFO - [Overall: 22%] [Step: 15/67] Executing: ubuntu-tmpl - base tools installation
+2025-12-13 11:05:18 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:18 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:05:20 - ssh                       - INFO - Running: sudo -n apt-get install -y ca-certificates curl
+2025-12-13 11:05:23 - deploy                    - INFO - Action 'base tools installation' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:05:23 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:23 - deploy                    - INFO - [Overall: 23%] [Step: 16/67] Executing: ubuntu-tmpl - template cleanup
+2025-12-13 11:05:23 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:23 - pct                       - INFO - Running in container 4010: rm -f /etc/apt/apt.conf.d/01proxy 2>&1
+2025-12-13 11:05:23 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cm0gLWYgL2V0Yy9hcHQvYXB0LmNvbmYuZC8wMXByb3h5IDI+JjE= | base64 -d | bash"
+2025-12-13 11:05:25 - pct                       - INFO - Running in container 4010: rm -f /etc/ssh/ssh_host_* 2>&1
+2025-12-13 11:05:25 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cm0gLWYgL2V0Yy9zc2gvc3NoX2hvc3RfKiAyPiYx | base64 -d | bash"
+2025-12-13 11:05:26 - pct                       - INFO - Running in container 4010: truncate -s 0 /etc/machine-id 2>&1
+2025-12-13 11:05:26 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo dHJ1bmNhdGUgLXMgMCAvZXRjL21hY2hpbmUtaWQgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:05:28 - pct                       - INFO - Running in container 4010: rm -f /var/lib/dbus/machine-id 2>&1
+2025-12-13 11:05:28 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cm0gLWYgL3Zhci9saWIvZGJ1cy9tYWNoaW5lLWlkIDI+JjE= | base64 -d | bash"
+2025-12-13 11:05:29 - pct                       - INFO - Running in container 4010: ln -s /etc/machine-id /var/lib/dbus/machine-id 2>&1
+2025-12-13 11:05:29 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo bG4gLXMgL2V0Yy9tYWNoaW5lLWlkIC92YXIvbGliL2RidXMvbWFjaGluZS1pZCAyPiYx | base64 -d | bash"
+2025-12-13 11:05:31 - pct                       - INFO - Running in container 4010: rm -rf /var/lib/apt/lists/* 2>&1
+2025-12-13 11:05:31 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo cm0gLXJmIC92YXIvbGliL2FwdC9saXN0cy8qIDI+JjE= | base64 -d | bash"
+2025-12-13 11:05:33 - pct                       - INFO - Running in container 4010: find /var/log -type f -name '*.log' -delete 2>/dev/null
+2025-12-13 11:05:33 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo ZmluZCAvdmFyL2xvZyAtdHlwZSBmIC1uYW1lICcqLmxvZycgLWRlbGV0ZSAyPi9kZXYvbnVsbA== | base64 -d | bash"
+2025-12-13 11:05:34 - pct                       - INFO - Running in container 4010: find /var/log -type f -name '*.gz' -delete 2>/dev/null
+2025-12-13 11:05:34 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo ZmluZCAvdmFyL2xvZyAtdHlwZSBmIC1uYW1lICcqLmd6JyAtZGVsZXRlIDI+L2Rldi9udWxs | base64 -d | bash"
+2025-12-13 11:05:36 - pct                       - INFO - Running in container 4010: truncate -s 0 /root/.bash_history 2>/dev/null
+2025-12-13 11:05:36 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo dHJ1bmNhdGUgLXMgMCAvcm9vdC8uYmFzaF9oaXN0b3J5IDI+L2Rldi9udWxs | base64 -d | bash"
+2025-12-13 11:05:37 - pct                       - INFO - Running in container 4010: truncate -s 0 /home/jaal/.bash_history 2>/dev/null
+2025-12-13 11:05:37 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo dHJ1bmNhdGUgLXMgMCAvaG9tZS9qYWFsLy5iYXNoX2hpc3RvcnkgMj4vZGV2L251bGw= | base64 -d | bash"
+2025-12-13 11:05:39 - pct                       - INFO - Running in container 4010: apt-get clean 2>&1
+2025-12-13 11:05:39 - ssh                       - INFO - Running: pct exec 4010 -- bash -c "echo YXB0LWdldCBjbGVhbiAyPiYx | base64 -d | bash"
+2025-12-13 11:05:40 - deploy                    - INFO - Action 'template cleanup' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:05:40 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:40 - deploy                    - INFO - [Overall: 25%] [Step: 17/67] Executing: ubuntu-tmpl - template archive creation
+2025-12-13 11:05:40 - deploy                    - INFO - ==================================================
+2025-12-13 11:05:40 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:05:40 - create_template_archive   - INFO - Stopping container...
+2025-12-13 11:05:40 - ssh                       - INFO - Running: pct stop 4010
+2025-12-13 11:05:44 - create_template_archive   - INFO - Stop container had issues, trying force stop
+2025-12-13 11:05:44 - ssh                       - INFO - Running: pct stop 4010 --force
+2025-12-13 11:05:48 - create_template_archive   - INFO - Creating template archive for container 4010 in directory /var/lib/vz/template/cache
+2025-12-13 11:05:48 - create_template_archive   - INFO - Executing vzdump command: vzdump 4010 --dumpdir /var/lib/vz/template/cache --compress zstd --mode stop 2>&1
+2025-12-13 11:05:48 - ssh                       - INFO - Running: vzdump 4010 --dumpdir /var/lib/vz/template/cache --compress zstd --mode stop 2>&1
+2025-12-13 11:05:58 - create_template_archive   - INFO - vzdump output (first 500 chars): INFO: starting new backup job: vzdump 4010 --dumpdir /var/lib/vz/template/cache --mode stop --compress zstd
+INFO: Starting Backup of VM 4010 (lxc)
+INFO: Backup started at 2025-12-13 12:05:49
+INFO: status = stopped
+INFO: backup mode: stop
+INFO: ionice priority: 7
+INFO: CT Name: ubuntu-tmpl
+INFO: including mount point rootfs ('/') in backup
+INFO: creating vzdump archive '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst'
+INFO: Total bytes written: 551802880 (527MiB, 7
+2025-12-13 11:05:58 - create_template_archive   - INFO - Waiting for template archive to be ready (max 120 seconds)...
+2025-12-13 11:06:00 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/vzdump-lxc-4010-*.tar.zst 2>/dev/null | head -1
+2025-12-13 11:06:00 - ssh                       - INFO - Running: stat -c%s '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' 2>/dev/null || echo '0'
+2025-12-13 11:06:02 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/vzdump-lxc-4010-*.tar.zst 2>/dev/null | head -1
+2025-12-13 11:06:02 - ssh                       - INFO - Running: stat -c%s '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' 2>/dev/null || echo '0'
+2025-12-13 11:06:04 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/vzdump-lxc-4010-*.tar.zst 2>/dev/null | head -1
+2025-12-13 11:06:04 - ssh                       - INFO - Running: stat -c%s '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' 2>/dev/null || echo '0'
+2025-12-13 11:06:06 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/vzdump-lxc-4010-*.tar.zst 2>/dev/null | head -1
+2025-12-13 11:06:06 - ssh                       - INFO - Running: stat -c%s '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' 2>/dev/null || echo '0'
+2025-12-13 11:06:06 - create_template_archive   - INFO - Template archive file found: /var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst
+2025-12-13 11:06:06 - ssh                       - INFO - Running: stat -c%s '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' 2>/dev/null || echo '0'
+2025-12-13 11:06:06 - create_template_archive   - INFO - Template archive size: 160.25 MB
+2025-12-13 11:06:06 - create_template_archive   - INFO - Final template name: ubuntu-tmpl_20251213_amd64.tar.zst
+2025-12-13 11:06:06 - create_template_archive   - INFO - Moving template from /var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst to /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst
+2025-12-13 11:06:06 - ssh                       - INFO - Running: mv '/var/lib/vz/template/cache/vzdump-lxc-4010-2025_12_13-12_05_49.tar.zst' /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst 2>&1
+2025-12-13 11:06:06 - create_template_archive   - INFO - Template moved to storage location: /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst
+2025-12-13 11:06:06 - ssh                       - INFO - Running: pveam update 2>&1
+2025-12-13 11:06:09 - create_template_archive   - INFO - Cleaning up other template archives...
+2025-12-13 11:06:09 - ssh                       - INFO - Running: find /var/lib/vz/template/cache -maxdepth 1 -type f -name '*.tar.zst' ! -name 'ubuntu-tmpl_20251213_amd64.tar.zst' ubuntu-24.10-standard_24.10-1_amd64.tar.zst ubuntu-25.04-template_*.tar.zst -delete 2>&1
+2025-12-13 11:06:09 - ssh                       - INFO - Running: find /var/lib/vz/template/cache -maxdepth 1 -type f -name '*.tar.zst' ! -name 'ubuntu-tmpl_20251213_amd64.tar.zst' ubuntu-24.10-standard_24.10-1_amd64.tar.zst ubuntu-25.04-template_*.tar.zst ! -name 'ubuntu-24.10-standard_24.10-1_amd64.tar.zst' -delete 2>&1
+2025-12-13 11:06:09 - ssh                       - INFO - Running: pct list | grep '^4010 ' || echo 'not_found'
+2025-12-13 11:06:11 - common                    - INFO - Stopping and destroying container 4010...
+2025-12-13 11:06:11 - ssh                       - INFO - Running: pct stop 4010 2>/dev/null || true; sleep 2; pct destroy 4010 2>&1
+2025-12-13 11:06:16 - ssh                       - INFO - Running: pct list | grep '^4010 ' || echo 'not_found'
+2025-12-13 11:06:17 - common                    - INFO - Container 4010 destroyed
+2025-12-13 11:06:17 - create_template_archive   - INFO - Container 4010 destroyed after template archive creation
+2025-12-13 11:06:17 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:06:17 - deploy                    - INFO - Action 'template archive creation' for container 'ubuntu-tmpl' completed successfully
+2025-12-13 11:06:17 - ssh                       - INFO - SSH connection closed to jaal@10.11.4.10
+2025-12-13 11:06:17 - deploy                    - INFO - Destroying template container 4010 after processing...
+2025-12-13 11:06:17 - ssh                       - INFO - Running: pct list | grep '^4010 ' || echo 'not_found'
+2025-12-13 11:06:19 - common                    - INFO - Container 4010 does not exist, skipping
+2025-12-13 11:06:19 - deploy                    - INFO - ==================================================
+2025-12-13 11:06:19 - deploy                    - INFO - [Overall: 26%] [Step: 18/67] Executing: pgsql - create container
+2025-12-13 11:06:19 - deploy                    - INFO - ==================================================
+2025-12-13 11:06:19 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:06:19 - ssh                       - INFO - Running: pct destroy 4018 --force
+2025-12-13 11:06:24 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/ubuntu-tmpl*.tar.zst 2>/dev/null | head -1 | xargs basename 2>/dev/null
+2025-12-13 11:06:24 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst && test -r /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst && echo 'valid' || echo 'invalid'
+2025-12-13 11:06:24 - create_container          - INFO - Checking if container 4018 already exists...
+2025-12-13 11:06:24 - ssh                       - INFO - Running: pct list | grep '^4018 '
+2025-12-13 11:06:26 - create_container          - INFO - Creating container 4018 from template...
+2025-12-13 11:06:26 - ssh                       - INFO - Running: pct create 4018 /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst --hostname pgsql --memory 2048 --swap 2048 --cores 2 --net0 name=eth0,bridge=vmbr0,ip=10.11.4.18/24,gw=10.11.4.253 --rootfs sdb:30 --unprivileged 1 --ostype ubuntu --arch amd64
+2025-12-13 11:06:33 - create_container          - INFO - Setting container features...
+2025-12-13 11:06:33 - ssh                       - INFO - Running: pct set 4018 --features nesting=1,keyctl=1,fuse=1
+2025-12-13 11:06:34 - create_container          - INFO - Setting autostart for container 4018 (onboot=1)...
+2025-12-13 11:06:34 - ssh                       - INFO - Running: pct set 4018 --onboot 1
+2025-12-13 11:06:35 - create_container          - INFO - Starting container 4018...
+2025-12-13 11:06:35 - ssh                       - INFO - Running: pct start 4018
+2025-12-13 11:06:41 - create_container          - INFO - Bringing up network interface...
+2025-12-13 11:06:41 - pct                       - INFO - Running in container 4018: ping -c 1 8.8.8.8
+2025-12-13 11:06:41 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo cGluZyAtYyAxIDguOC44Ljg= | base64 -d | bash"
+2025-12-13 11:06:42 - create_container          - INFO - Network interface is up and reachable
+2025-12-13 11:06:42 - pct                       - INFO - Running in container 4018: id -u jaal >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo jaal
+2025-12-13 11:06:42 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo aWQgLXUgamFhbCA+L2Rldi9udWxsIDI+JjEgfHwgdXNlcmFkZCAtbSAtcyAvYmluL2Jhc2ggLUcgc3VkbyBqYWFs | base64 -d | bash"
+2025-12-13 11:06:43 - pct                       - INFO - Running in container 4018: echo 'jaal:jaal123' | chpasswd
+2025-12-13 11:06:43 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo ZWNobyAnamFhbDpqYWFsMTIzJyB8IGNocGFzc3dk | base64 -d | bash"
+2025-12-13 11:06:45 - create_container          - INFO - Password set for user jaal
+2025-12-13 11:06:45 - pct                       - INFO - Running in container 4018: printf 'jaal ALL=(ALL) NOPASSWD: ALL
+' > /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:06:45 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo cHJpbnRmICdqYWFsIEFMTD0oQUxMKSBOT1BBU1NXRDogQUxMCicgPiAvZXRjL3N1ZG9lcnMuZC9qYWFsIDI+JjE= | base64 -d | bash"
+2025-12-13 11:06:46 - pct                       - INFO - Running in container 4018: chmod 440 /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:06:46 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo Y2htb2QgNDQwIC9ldGMvc3Vkb2Vycy5kL2phYWwgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:06:48 - pct                       - INFO - Running in container 4018: mkdir -p /home/jaal/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /home/jaal/.ssh/authorized_keys && chmod 600 /home/jaal/.ssh/authorized_keys && chown jaal:jaal /home/jaal/.ssh/authorized_keys
+2025-12-13 11:06:48 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo bWtkaXIgLXAgL2hvbWUvamFhbC8uc3NoICYmIGVjaG8gYzNOb0xXVmtNalUxTVRrZ1FVRkJRVU16VG5waFF6RnNXa1JKTVU1VVJUVkJRVUZCU1VSeVVXTnJaRWxUVEN0V0swYzBNalJTVG05WWNHbFVVR05DZWxwNFpUQkxPVXBQYldkWlpUQnZOSGtnYW1GaGJFQjFZblZ1ZEhVdFpHVnphM1J2Y0E9PSB8IGJhc2U2NCAtZCA+IC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2htb2QgNjAwIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2hvd24gamFhbDpqYWFsIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:06:49 - pct                       - INFO - Running in container 4018: mkdir -p /root/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
+2025-12-13 11:06:49 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo bWtkaXIgLXAgL3Jvb3QvLnNzaCAmJiBlY2hvIGMzTm9MV1ZrTWpVMU1Ua2dRVUZCUVVNelRucGhRekZzV2tSSk1VNVVSVFZCUVVGQlNVUnlVV05yWkVsVFRDdFdLMGMwTWpSU1RtOVljR2xVVUdOQ2VscDRaVEJMT1VwUGJXZFpaVEJ2TkhrZ2FtRmhiRUIxWW5WdWRIVXRaR1Z6YTNSdmNBPT0gfCBiYXNlNjQgLWQgPiAvcm9vdC8uc3NoL2F1dGhvcml6ZWRfa2V5cyAmJiBjaG1vZCA2MDAgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:06:51 - pct                       - INFO - Running in container 4018: test -f /home/jaal/.ssh/authorized_keys && test -f /root/.ssh/authorized_keys && echo 'keys_exist' || echo 'keys_missing'
+2025-12-13 11:06:51 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo dGVzdCAtZiAvaG9tZS9qYWFsLy5zc2gvYXV0aG9yaXplZF9rZXlzICYmIHRlc3QgLWYgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgZWNobyAna2V5c19leGlzdCcgfHwgZWNobyAna2V5c19taXNzaW5nJw== | base64 -d | bash"
+2025-12-13 11:06:52 - common                    - INFO - SSH key setup verified successfully
+2025-12-13 11:06:52 - pct                       - INFO - Running in container 4018: dpkg -l | grep -q '^ii.*openssh-server' || echo 'not_installed'
+2025-12-13 11:06:52 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo ZHBrZyAtbCB8IGdyZXAgLXEgJ15paS4qb3BlbnNzaC1zZXJ2ZXInIHx8IGVjaG8gJ25vdF9pbnN0YWxsZWQn | base64 -d | bash"
+2025-12-13 11:06:54 - pct                       - INFO - Running in container 4018: systemctl enable ssh
+2025-12-13 11:06:54 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo c3lzdGVtY3RsIGVuYWJsZSBzc2g= | base64 -d | bash"
+2025-12-13 11:06:56 - pct                       - INFO - Running in container 4018: systemctl start ssh
+2025-12-13 11:06:56 - ssh                       - INFO - Running: pct exec 4018 -- bash -c "echo c3lzdGVtY3RsIHN0YXJ0IHNzaA== | base64 -d | bash"
+2025-12-13 11:06:57 - create_container          - INFO - Waiting for container to be ready with SSH connectivity (up to 10 minutes)...
+2025-12-13 11:06:57 - ssh                       - INFO - Running: pct status 4018 2>&1
+2025-12-13 11:06:59 - ssh                       - INFO - Running: ping -c 1 -W 2 10.11.4.18 2>&1
+2025-12-13 11:06:59 - pct                       - INFO - Container is up!
+2025-12-13 11:06:59 - create_container          - INFO - Container 4018 created successfully
+2025-12-13 11:06:59 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:06:59 - deploy                    - INFO - Container 'pgsql' created successfully
+2025-12-13 11:06:59 - deploy                    - INFO - Setting up SSH connection to container pgsql...
+2025-12-13 11:06:59 - ssh                       - INFO - SSH connection established to jaal@10.11.4.18
+2025-12-13 11:07:01 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:01 - deploy                    - INFO - [Overall: 28%] [Step: 19/67] Executing: pgsql - cloud-init wait
+2025-12-13 11:07:01 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:01 - ssh                       - INFO - Running: command -v cloud-init
+2025-12-13 11:07:01 - cloud_init_wait           - INFO - cloud-init not found, skipping
+2025-12-13 11:07:01 - deploy                    - INFO - Action 'cloud-init wait' for container 'pgsql' completed successfully
+2025-12-13 11:07:01 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:01 - deploy                    - INFO - [Overall: 29%] [Step: 20/67] Executing: pgsql - postgresql installation
+2025-12-13 11:07:01 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:01 - install_postgresql        - INFO - Installing PostgreSQL 17 package...
+2025-12-13 11:07:01 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:07:07 - ssh                       - INFO - Running: sudo -n apt-get install -y postgresql-17 postgresql-contrib
+2025-12-13 11:07:28 - deploy                    - INFO - Action 'postgresql installation' for container 'pgsql' completed successfully
+2025-12-13 11:07:28 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:28 - deploy                    - INFO - [Overall: 31%] [Step: 21/67] Executing: pgsql - postgresql service configuration
+2025-12-13 11:07:28 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:28 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl enable postgresql@17-main'
+2025-12-13 11:07:28 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl start postgresql@17-main'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl is-active postgresql@17-main'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo c3MgLXRsbnAgfCBncmVwIDo1NDMyIHwgZ3JlcCAtdiAnMTI3LjAuMC4xJyB8fCBlY2hvICdub3RfbGlzdGVuaW5nJw== | base64 -d | bash'
+2025-12-13 11:07:38 - configure_postgres_service - INFO - PostgreSQL is listening on all interfaces
+2025-12-13 11:07:38 - deploy                    - INFO - Action 'postgresql service configuration' for container 'pgsql' completed successfully
+2025-12-13 11:07:38 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:38 - deploy                    - INFO - [Overall: 32%] [Step: 22/67] Executing: pgsql - postgresql files configuration
+2025-12-13 11:07:38 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo c2VkIC1pICcvXiMqbGlzdGVuX2FkZHJlc3Nlcy4qL2QnIC9ldGMvcG9zdGdyZXNxbC8xNy9tYWluL3Bvc3RncmVzcWwuY29uZg== | base64 -d | bash'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo Z3JlcCAtcSAnXmxpc3Rlbl9hZGRyZXNzZXMgPScgL2V0Yy9wb3N0Z3Jlc3FsLzE3L21haW4vcG9zdGdyZXNxbC5jb25mICYmIGVjaG8gZXhpc3RzIHx8IGVjaG8gbm90X2V4aXN0cw== | base64 -d | bash'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo Z3JlcCAtbiAnXiMgQ09OTkVDVElPTlMgQU5EIEFVVEhFTlRJQ0FUSU9OJyAvZXRjL3Bvc3RncmVzcWwvMTcvbWFpbi9wb3N0Z3Jlc3FsLmNvbmYgfCBjdXQgLWQ6IC1mMQ== | base64 -d | bash'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo YXdrIC12IG49NTUgLXYgcz0ibGlzdGVuX2FkZHJlc3NlcyA9ICcqJyIgJ05SPT1uIHtwcmludDsgcHJpbnQgczsgbmV4dH0xJyAvZXRjL3Bvc3RncmVzcWwvMTcvbWFpbi9wb3N0Z3Jlc3FsLmNvbmYgPiAvZXRjL3Bvc3RncmVzcWwvMTcvbWFpbi9wb3N0Z3Jlc3FsLmNvbmYudG1wICYmIG12IC9ldGMvcG9zdGdyZXNxbC8xNy9tYWluL3Bvc3RncmVzcWwuY29uZi50bXAgL2V0Yy9wb3N0Z3Jlc3FsLzE3L21haW4vcG9zdGdyZXNxbC5jb25m | base64 -d | bash'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo c2VkIC1pICdzL14jP3BvcnQuKi9wb3J0ID0gNTQzMi8nIC9ldGMvcG9zdGdyZXNxbC8xNy9tYWluL3Bvc3RncmVzcWwuY29uZiAyPiYx | base64 -d | bash'
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdsb2NhbCBhbGwgYWxsIHBlZXIKaG9zdCBhbGwgYWxsIDEwLjExLjQuMC8yNCBtZDUKJyA+IC9ldGMvcG9zdGdyZXNxbC8xNy9tYWluL3BnX2hiYS5jb25mIDI+JjE= | base64 -d | bash'
+2025-12-13 11:07:38 - configure_postgres_files  - INFO - Restarting PostgreSQL to apply configuration changes...
+2025-12-13 11:07:38 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl restart postgresql@17-main'
+2025-12-13 11:07:44 - ssh                       - INFO - Running: sudo -n bash -c 'echo c3MgLXRsbnAgfCBncmVwIDo1NDMyIHwgZ3JlcCAtdiAnMTI3LjAuMC4xJyB8fCBlY2hvICdub3RfbGlzdGVuaW5nJw== | base64 -d | bash'
+2025-12-13 11:07:44 - configure_postgres_files  - INFO - PostgreSQL is listening on all interfaces after restart
+2025-12-13 11:07:44 - deploy                    - INFO - Action 'postgresql files configuration' for container 'pgsql' completed successfully
+2025-12-13 11:07:44 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:44 - deploy                    - INFO - [Overall: 34%] [Step: 23/67] Executing: pgsql - postgresql password setup
+2025-12-13 11:07:44 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:44 - ssh                       - INFO - Running: sudo -n -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';" 2>&1
+2025-12-13 11:07:44 - deploy                    - INFO - Action 'postgresql password setup' for container 'pgsql' completed successfully
+2025-12-13 11:07:44 - ssh                       - INFO - SSH connection closed to jaal@10.11.4.18
+2025-12-13 11:07:44 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:44 - deploy                    - INFO - [Overall: 35%] [Step: 24/67] Executing: haproxy - create container
+2025-12-13 11:07:44 - deploy                    - INFO - ==================================================
+2025-12-13 11:07:44 - ssh                       - INFO - SSH connection established to root@10.11.4.4
+2025-12-13 11:07:44 - ssh                       - INFO - Running: pct destroy 4017 --force
+2025-12-13 11:07:49 - ssh                       - INFO - Running: ls -t /var/lib/vz/template/cache/ubuntu-tmpl*.tar.zst 2>/dev/null | head -1 | xargs basename 2>/dev/null
+2025-12-13 11:07:49 - ssh                       - INFO - Running: test -f /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst && test -r /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst && echo 'valid' || echo 'invalid'
+2025-12-13 11:07:49 - create_container          - INFO - Checking if container 4017 already exists...
+2025-12-13 11:07:49 - ssh                       - INFO - Running: pct list | grep '^4017 '
+2025-12-13 11:07:51 - create_container          - INFO - Creating container 4017 from template...
+2025-12-13 11:07:51 - ssh                       - INFO - Running: pct create 4017 /var/lib/vz/template/cache/ubuntu-tmpl_20251213_amd64.tar.zst --hostname haproxy --memory 1024 --swap 1024 --cores 2 --net0 name=eth0,bridge=vmbr0,ip=10.11.4.17/24,gw=10.11.4.253 --rootfs sdb:10 --unprivileged 1 --ostype ubuntu --arch amd64
+2025-12-13 11:07:58 - create_container          - INFO - Setting container features...
+2025-12-13 11:07:58 - ssh                       - INFO - Running: pct set 4017 --features nesting=1,keyctl=1,fuse=1
+2025-12-13 11:08:00 - create_container          - INFO - Setting autostart for container 4017 (onboot=1)...
+2025-12-13 11:08:00 - ssh                       - INFO - Running: pct set 4017 --onboot 1
+2025-12-13 11:08:01 - create_container          - INFO - Starting container 4017...
+2025-12-13 11:08:01 - ssh                       - INFO - Running: pct start 4017
+2025-12-13 11:08:07 - create_container          - INFO - Bringing up network interface...
+2025-12-13 11:08:07 - pct                       - INFO - Running in container 4017: ping -c 1 8.8.8.8
+2025-12-13 11:08:07 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo cGluZyAtYyAxIDguOC44Ljg= | base64 -d | bash"
+2025-12-13 11:08:08 - create_container          - INFO - Network interface is up and reachable
+2025-12-13 11:08:08 - pct                       - INFO - Running in container 4017: id -u jaal >/dev/null 2>&1 || useradd -m -s /bin/bash -G sudo jaal
+2025-12-13 11:08:08 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo aWQgLXUgamFhbCA+L2Rldi9udWxsIDI+JjEgfHwgdXNlcmFkZCAtbSAtcyAvYmluL2Jhc2ggLUcgc3VkbyBqYWFs | base64 -d | bash"
+2025-12-13 11:08:10 - pct                       - INFO - Running in container 4017: echo 'jaal:jaal123' | chpasswd
+2025-12-13 11:08:10 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo ZWNobyAnamFhbDpqYWFsMTIzJyB8IGNocGFzc3dk | base64 -d | bash"
+2025-12-13 11:08:11 - create_container          - INFO - Password set for user jaal
+2025-12-13 11:08:11 - pct                       - INFO - Running in container 4017: printf 'jaal ALL=(ALL) NOPASSWD: ALL
+' > /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:08:11 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo cHJpbnRmICdqYWFsIEFMTD0oQUxMKSBOT1BBU1NXRDogQUxMCicgPiAvZXRjL3N1ZG9lcnMuZC9qYWFsIDI+JjE= | base64 -d | bash"
+2025-12-13 11:08:13 - pct                       - INFO - Running in container 4017: chmod 440 /etc/sudoers.d/jaal 2>&1
+2025-12-13 11:08:13 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo Y2htb2QgNDQwIC9ldGMvc3Vkb2Vycy5kL2phYWwgMj4mMQ== | base64 -d | bash"
+2025-12-13 11:08:14 - pct                       - INFO - Running in container 4017: mkdir -p /home/jaal/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /home/jaal/.ssh/authorized_keys && chmod 600 /home/jaal/.ssh/authorized_keys && chown jaal:jaal /home/jaal/.ssh/authorized_keys
+2025-12-13 11:08:14 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo bWtkaXIgLXAgL2hvbWUvamFhbC8uc3NoICYmIGVjaG8gYzNOb0xXVmtNalUxTVRrZ1FVRkJRVU16VG5waFF6RnNXa1JKTVU1VVJUVkJRVUZCU1VSeVVXTnJaRWxUVEN0V0swYzBNalJTVG05WWNHbFVVR05DZWxwNFpUQkxPVXBQYldkWlpUQnZOSGtnYW1GaGJFQjFZblZ1ZEhVdFpHVnphM1J2Y0E9PSB8IGJhc2U2NCAtZCA+IC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2htb2QgNjAwIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgY2hvd24gamFhbDpqYWFsIC9ob21lL2phYWwvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:08:15 - pct                       - INFO - Running in container 4017: mkdir -p /root/.ssh && echo c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSURyUWNrZElTTCtWK0c0MjRSTm9YcGlUUGNCelp4ZTBLOUpPbWdZZTBvNHkgamFhbEB1YnVudHUtZGVza3RvcA== | base64 -d > /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
+2025-12-13 11:08:15 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo bWtkaXIgLXAgL3Jvb3QvLnNzaCAmJiBlY2hvIGMzTm9MV1ZrTWpVMU1Ua2dRVUZCUVVNelRucGhRekZzV2tSSk1VNVVSVFZCUVVGQlNVUnlVV05yWkVsVFRDdFdLMGMwTWpSU1RtOVljR2xVVUdOQ2VscDRaVEJMT1VwUGJXZFpaVEJ2TkhrZ2FtRmhiRUIxWW5WdWRIVXRaR1Z6YTNSdmNBPT0gfCBiYXNlNjQgLWQgPiAvcm9vdC8uc3NoL2F1dGhvcml6ZWRfa2V5cyAmJiBjaG1vZCA2MDAgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXM= | base64 -d | bash"
+2025-12-13 11:08:17 - pct                       - INFO - Running in container 4017: test -f /home/jaal/.ssh/authorized_keys && test -f /root/.ssh/authorized_keys && echo 'keys_exist' || echo 'keys_missing'
+2025-12-13 11:08:17 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo dGVzdCAtZiAvaG9tZS9qYWFsLy5zc2gvYXV0aG9yaXplZF9rZXlzICYmIHRlc3QgLWYgL3Jvb3QvLnNzaC9hdXRob3JpemVkX2tleXMgJiYgZWNobyAna2V5c19leGlzdCcgfHwgZWNobyAna2V5c19taXNzaW5nJw== | base64 -d | bash"
+2025-12-13 11:08:18 - common                    - INFO - SSH key setup verified successfully
+2025-12-13 11:08:18 - pct                       - INFO - Running in container 4017: dpkg -l | grep -q '^ii.*openssh-server' || echo 'not_installed'
+2025-12-13 11:08:18 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo ZHBrZyAtbCB8IGdyZXAgLXEgJ15paS4qb3BlbnNzaC1zZXJ2ZXInIHx8IGVjaG8gJ25vdF9pbnN0YWxsZWQn | base64 -d | bash"
+2025-12-13 11:08:19 - pct                       - INFO - Running in container 4017: systemctl enable ssh
+2025-12-13 11:08:19 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo c3lzdGVtY3RsIGVuYWJsZSBzc2g= | base64 -d | bash"
+2025-12-13 11:08:22 - pct                       - INFO - Running in container 4017: systemctl start ssh
+2025-12-13 11:08:22 - ssh                       - INFO - Running: pct exec 4017 -- bash -c "echo c3lzdGVtY3RsIHN0YXJ0IHNzaA== | base64 -d | bash"
+2025-12-13 11:08:23 - create_container          - INFO - Waiting for container to be ready with SSH connectivity (up to 10 minutes)...
+2025-12-13 11:08:23 - ssh                       - INFO - Running: pct status 4017 2>&1
+2025-12-13 11:08:25 - ssh                       - INFO - Running: ping -c 1 -W 2 10.11.4.17 2>&1
+2025-12-13 11:08:25 - pct                       - INFO - Container is up!
+2025-12-13 11:08:25 - create_container          - INFO - Container 4017 created successfully
+2025-12-13 11:08:25 - ssh                       - INFO - SSH connection closed to root@10.11.4.4
+2025-12-13 11:08:25 - deploy                    - INFO - Container 'haproxy' created successfully
+2025-12-13 11:08:25 - deploy                    - INFO - Setting up SSH connection to container haproxy...
+2025-12-13 11:08:25 - ssh                       - INFO - SSH connection established to jaal@10.11.4.17
+2025-12-13 11:08:27 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:27 - deploy                    - INFO - [Overall: 37%] [Step: 25/67] Executing: haproxy - cloud-init wait
+2025-12-13 11:08:27 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:27 - ssh                       - INFO - Running: command -v cloud-init
+2025-12-13 11:08:27 - cloud_init_wait           - INFO - cloud-init not found, skipping
+2025-12-13 11:08:27 - deploy                    - INFO - Action 'cloud-init wait' for container 'haproxy' completed successfully
+2025-12-13 11:08:27 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:27 - deploy                    - INFO - [Overall: 38%] [Step: 26/67] Executing: haproxy - haproxy installation
+2025-12-13 11:08:27 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:27 - install_haproxy           - INFO - Installing haproxy package...
+2025-12-13 11:08:27 - ssh                       - INFO - Running: sudo -n apt-get update
+2025-12-13 11:08:34 - ssh                       - INFO - Running: sudo -n apt-get install -y haproxy
+2025-12-13 11:08:39 - deploy                    - INFO - Action 'haproxy installation' for container 'haproxy' completed successfully
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - deploy                    - INFO - [Overall: 40%] [Step: 27/67] Executing: haproxy - haproxy configuration
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdnbG9iYWwKICAgIGxvZyAvZGV2L2xvZyBsb2NhbDAKICAgIGxvZyAvZGV2L2xvZyBsb2NhbDEgbm90aWNlCiAgICBtYXhjb25uIDIwNDgKICAgIGRhZW1vbgpkZWZhdWx0cwogICAgbG9nICAgICBnbG9iYWwKICAgIG1vZGUgICAgaHR0cAogICAgb3B0aW9uICBodHRwbG9nCiAgICBvcHRpb24gIGRvbnRsb2dudWxsCiAgICB0aW1lb3V0IGNvbm5lY3QgNXMKICAgIHRpbWVvdXQgY2xpZW50ICA1MHMKICAgIHRpbWVvdXQgc2VydmVyICA1MHMKZnJvbnRlbmQgaHR0cC1pbgogICAgYmluZCAqOjgwCiAgICBkZWZhdWx0X2JhY2tlbmQgbm9kZXMKZnJvbnRlbmQgaHR0cHMtaW4KICAgIGJpbmQgKjo0NDMKICAgIG1vZGUgaHR0cAogICAgZGVmYXVsdF9iYWNrZW5kIG5vZGVzCmJhY2tlbmQgbm9kZXMKICAgIHNlcnZlciBkdW1teSAxMjcuMC4wLjE6ODAgY2hlY2sKbGlzdGVuIHN0YXRzCiAgICBiaW5kICo6ODQwNAogICAgbW9kZSBodHRwCiAgICBzdGF0cyBlbmFibGUKICAgIHN0YXRzIHVyaSAvCiAgICBzdGF0cyByZWZyZXNoIDEwcwonID4gL2V0Yy9oYXByb3h5L2hhcHJveHkuY2ZnIDI+JjE= | base64 -d | bash'
+2025-12-13 11:08:39 - deploy                    - INFO - Action 'haproxy configuration' for container 'haproxy' completed successfully
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - deploy                    - INFO - [Overall: 41%] [Step: 28/67] Executing: haproxy - haproxy systemd override
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - ssh                       - INFO - Running: sudo -n bash -c 'mkdir -p /etc/systemd/system/haproxy.service.d 2>&1'
+2025-12-13 11:08:39 - ssh                       - INFO - Running: sudo -n bash -c 'echo cHJpbnRmICdbU2VydmljZV0KVHlwZT1ub3RpZnkKUHJpdmF0ZU5ldHdvcms9bm8KUHJvdGVjdFN5c3RlbT1ubwpQcm90ZWN0SG9tZT1ubwpFeGVjU3RhcnQ9CkV4ZWNTdGFydD0vdXNyL3NiaW4vaGFwcm94eSAtV3MgLWYgJENPTkZJRyAtcCAkUElERklMRSAkRVhUUkFPUFRTCicgPiAvZXRjL3N5c3RlbWQvc3lzdGVtL2hhcHJveHkuc2VydmljZS5kL292ZXJyaWRlLmNvbmYgMj4mMQ== | base64 -d | bash'
+2025-12-13 11:08:39 - ssh                       - INFO - Running: sudo -n bash -c 'systemctl daemon-reload'
+2025-12-13 11:08:39 - deploy                    - INFO - Action 'haproxy systemd override' for container 'haproxy' completed successfully
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - deploy                    - INFO - [Overall: 43%] [Step: 29/67] Executing: haproxy - haproxy service enablement
+2025-12-13 11:08:39 - deploy                    - INFO - ==================================================
+2025-12-13 11:08:39 - ssh                       - INFO - Running: haproxy -c -f /etc/haproxy/haproxy.cfg 2>&1
+2025-12-13 11:08:39 - ssh                       - INFO - Running: systemctl restart haproxy
+2025-12-13 11:08:39 - enable_haproxy_service    - INFO - restart haproxy service failed with exit code 4
+2025-12-13 11:08:39 - enable_haproxy_service    - INFO - restart haproxy service output: [0;1;31mSee system logs and 'systemctl status haproxy.service' for details.[0m
+2025-12-13 11:08:39 - ssh                       - INFO - Running: systemctl status haproxy.service --no-pager -l 2>&1 | head -20
+2025-12-13 11:08:39 - enable_haproxy_service    - INFO - HAProxy service restart failed. Status: * haproxy.service - HAProxy Load Balancer
+     Loaded: loaded (/usr/lib/systemd/system/haproxy.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/haproxy.service.d
+             `-override.conf
+     Active: active (running) since Sat 2025-12-13 10:08:38 UTC; 1s ago
+ Invocation: 885031d387de4f8d9e413d25aa44d454
+       Docs: man:haproxy(1)
+             file:/usr/share/doc/haproxy/configuration.txt.gz
+   Main PID: 817 (haproxy)
+     Status: "Ready."
+      Tasks: 3 (limit: 77078)
+     Memory: 41.6M (peak: 42.1M)
+        CPU: 135ms
+     CGroup: /system.slice/haproxy.service
+             |-817 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+             `-820 /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -p /run/haproxy.pid -S /run/haproxy-master.sock
+2025-12-13 11:08:39 - ssh                       - INFO - SSH connection closed to jaal@10.11.4.17
+2025-12-13 11:08:39 - deploy                    - ERROR - Error during deployment: Failed to execute action 'haproxy service enablement' for container 'haproxy'
+2025-12-13 11:08:39 - deploy                    - ERROR - Error: Failed to execute action 'haproxy service enablement' for container 'haproxy'
+2025-12-13 11:08:39 - deploy                    - ERROR -   enva/libs.(*Logger).LogTraceback(0xc0000f7a90?, {0x8657a0?, 0xc000290400?})
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/lab/lab/src/libs/logger.go:131 +0x86
+2025-12-13 11:08:39 - deploy                    - ERROR -   enva/commands.(*Deploy).Run(0xc0000f7bb8?, 0x7bc02b?, 0xc0001a70c8?, 0x0)
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/lab/lab/src/commands/deploy.go:64 +0x1e7
+2025-12-13 11:08:39 - deploy                    - ERROR -   main.runRedeploy(0xc00002c500?, {0x7b3dc7?, 0x4?, 0x7b3d87?})
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/lab/lab/src/main.go:229 +0x39c
+2025-12-13 11:08:39 - deploy                    - ERROR -   github.com/spf13/cobra.(*Command).execute(0xc000004c00, {0xc0000a4aa0, 0x2, 0x2})
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/go/pkg/mod/github.com/spf13/cobra@v1.8.0/command.go:983 +0xabc
+2025-12-13 11:08:39 - deploy                    - ERROR -   github.com/spf13/cobra.(*Command).ExecuteC(0xc000004300)
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/go/pkg/mod/github.com/spf13/cobra@v1.8.0/command.go:1115 +0x3ff
+2025-12-13 11:08:39 - deploy                    - ERROR -   github.com/spf13/cobra.(*Command).Execute(...)
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/go/pkg/mod/github.com/spf13/cobra@v1.8.0/command.go:1039
+2025-12-13 11:08:39 - deploy                    - ERROR -   main.main()
+2025-12-13 11:08:39 - deploy                    - ERROR -   	/home/jaal/lab/lab/src/main.go:110 +0x62f

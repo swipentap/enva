@@ -1,0 +1,17 @@
+lab.chat
+**/*.pyc
+logs/*.log
+venv/*
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+src/enva
+src/enva.exe
+src/vendor/
