@@ -1,0 +1,14 @@
+Source: enva
+Section: admin
+Priority: optional
+Maintainer: EnvA Maintainers <maintainers@enva.local>
+Build-Depends: debhelper-compat (= 13), golang-go (>= 1.21), dh-golang
+Standards-Version: 4.6.0
+Homepage: https://github.com/yourusername/enva
+
+Package: enva
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: EnvA CLI - Manage LXC containers and Docker Swarm
+ EnvA CLI tool for deploying and managing Kubernetes (k3s) clusters
+ with supporting services on LXC containers.

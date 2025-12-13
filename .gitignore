@@ -1,6 +1,7 @@
 lab.chat
 **/*.pyc
 logs/*.log
+src/logs/*.log
 venv/*
 
 # Go

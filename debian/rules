@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+export DH_GOLANG_INSTALL_ALL := 1
+export GO111MODULE=on
+
+%:
+	dh $@ --with=golang
+
+override_dh_auto_build:
+	cd src && go build -o enva main.go
+
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p $(CURDIR)/debian/enva/usr/bin
+	cp $(CURDIR)/src/enva $(CURDIR)/debian/enva/usr/bin/enva
+	mkdir -p $(CURDIR)/debian/enva/usr/share/doc/enva/examples
+	cp $(CURDIR)/src/enva.yaml $(CURDIR)/debian/enva/usr/share/doc/enva/examples/enva.yaml.example
+
+override_dh_auto_test:
+	cd src && go test ./...
