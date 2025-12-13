@@ -1,12 +1,12 @@
 package services
 
 import (
+	"enva/libs"
 	"fmt"
 	"strings"
-	"enva/libs"
 )
 
-// TemplateService manages template operations on Proxmox host
+// TemplateService manages template operations on LXC host
 type TemplateService struct {
 	lxc libs.LXCServiceInterface
 }
@@ -38,7 +38,7 @@ func (t *TemplateService) GetBaseTemplate(cfg *libs.LabConfig) *string {
 
 	// Run pveam download
 	downloadCmd := fmt.Sprintf("pveam download local %s", templateToDownload)
-	libs.GetLogger("template").Printf("Running: %s", downloadCmd)
+	libs.GetLogger("template").Debug("Running: %s", downloadCmd)
 	timeout := 300
 	output, exitCode := t.lxc.Execute(downloadCmd, &timeout)
 
@@ -114,4 +114,3 @@ func (t *TemplateService) ValidateTemplate(templatePath string) bool {
 	result, _ := t.lxc.Execute(checkCmd, nil)
 	return strings.Contains(result, "valid")
 }
-

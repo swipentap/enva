@@ -1,12 +1,12 @@
 package commands
 
 import (
+	"enva/libs"
+	"enva/services"
 	"fmt"
 	"os"
 	"strings"
 	"time"
-	"enva/libs"
-	"enva/services"
 )
 
 // BackupError is raised when backup fails
@@ -56,8 +56,8 @@ func (b *Backup) Run() error {
 		return &BackupError{Message: "Backup configuration not found"}
 	}
 	if !b.lxcService.Connect() {
-		logger.Error("Failed to connect to Proxmox host %s", b.cfg.LXCHost())
-		return &BackupError{Message: "Failed to connect to Proxmox host"}
+		logger.Error("Failed to connect to LXC host %s", b.cfg.LXCHost())
+		return &BackupError{Message: "Failed to connect to LXC host"}
 	}
 	defer b.lxcService.Disconnect()
 	var backupContainer *libs.ContainerConfig
@@ -78,10 +78,10 @@ func (b *Backup) Run() error {
 	mkdirCmd := fmt.Sprintf("mkdir -p %s", b.cfg.Backup.BackupDir)
 	timeout := 30
 	mkdirOutput, mkdirExit := b.pctService.Execute(backupContainer.ID, mkdirCmd, &timeout)
-		if mkdirExit != nil && *mkdirExit != 0 {
-			logger.Error("Failed to create backup directory: %s", mkdirOutput)
-			return &BackupError{Message: "Failed to create backup directory"}
-		}
+	if mkdirExit != nil && *mkdirExit != 0 {
+		logger.Error("Failed to create backup directory: %s", mkdirOutput)
+		return &BackupError{Message: "Failed to create backup directory"}
+	}
 	type backupFile struct {
 		sourceID int
 		tempFile string
@@ -158,8 +158,8 @@ func (b *Backup) Run() error {
 	logger.Info("Copying backup files to backup container...")
 	var backupFileNames []string
 	for _, bf := range backupFiles {
-		proxmoxTemp := fmt.Sprintf("/tmp/%s-%s", backupName, bf.destName)
-		pullCmd := fmt.Sprintf("pct pull %d %s %s", bf.sourceID, bf.tempFile, proxmoxTemp)
+		lxcTemp := fmt.Sprintf("/tmp/%s-%s", backupName, bf.destName)
+		pullCmd := fmt.Sprintf("pct pull %d %s %s", bf.sourceID, bf.tempFile, lxcTemp)
 		timeout = 300
 		pullOutput, pullExit := b.lxcService.Execute(pullCmd, &timeout)
 		if pullExit == nil || *pullExit != 0 {
@@ -167,7 +167,7 @@ func (b *Backup) Run() error {
 			return &BackupError{Message: fmt.Sprintf("Failed to pull file from container %d", bf.sourceID)}
 		}
 		backupFilePath := fmt.Sprintf("%s/%s-%s", b.cfg.Backup.BackupDir, backupName, bf.destName)
-		pushCmd := fmt.Sprintf("pct push %d %s %s", backupContainer.ID, proxmoxTemp, backupFilePath)
+		pushCmd := fmt.Sprintf("pct push %d %s %s", backupContainer.ID, lxcTemp, backupFilePath)
 		timeout = 300
 		pushOutput, pushExit := b.lxcService.Execute(pushCmd, &timeout)
 		if pushExit == nil || *pushExit != 0 {
@@ -175,7 +175,7 @@ func (b *Backup) Run() error {
 			return &BackupError{Message: "Failed to push file to backup container"}
 		}
 		timeout = 30
-		b.lxcService.Execute(fmt.Sprintf("rm -f %s", proxmoxTemp), &timeout)
+		b.lxcService.Execute(fmt.Sprintf("rm -f %s", lxcTemp), &timeout)
 		timeout = 30
 		b.pctService.Execute(bf.sourceID, fmt.Sprintf("rm -f %s %s.tar.gz 2>&1 || true", bf.tempFile, bf.tempFile), &timeout)
 		backupFileNames = append(backupFileNames, fmt.Sprintf("%s-%s", backupName, bf.destName))

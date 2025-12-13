@@ -1,13 +1,13 @@
 package commands
 
 import (
+	"enva/cli"
+	"enva/libs"
+	"enva/services"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"enva/cli"
-	"enva/libs"
-	"enva/services"
 )
 
 // CleanupError is raised when cleanup fails
@@ -54,8 +54,8 @@ func (c *Cleanup) Run() error {
 	logger.Info("==================================================")
 	logger.Info("Destroying ALL containers and templates...")
 	if !c.lxcService.Connect() {
-		logger.Error("Failed to connect to Proxmox host %s", c.cfg.LXCHost())
-		return &CleanupError{Message: "Failed to connect to Proxmox host"}
+		logger.Error("Failed to connect to LXC host %s", c.cfg.LXCHost())
+		return &CleanupError{Message: "Failed to connect to LXC host"}
 	}
 	defer c.lxcService.Disconnect()
 	if err := c.destroyContainers(); err != nil {
@@ -129,7 +129,7 @@ func (c *Cleanup) verifyContainersRemoved() error {
 func (c *Cleanup) removeTemplates() error {
 	logger := libs.GetLogger("cleanup")
 	logger.Info("Removing templates...")
-	templateDir := c.cfg.ProxmoxTemplateDir()
+	templateDir := c.cfg.LXCTemplateDir()
 	logger.Info("Cleaning template directory %s...", templateDir)
 	countCmd := cli.NewFind().Directory(templateDir).Maxdepth(1).Type("f").Name("*.tar.zst").Count()
 	countResult, _ := c.lxcService.Execute(countCmd, nil)

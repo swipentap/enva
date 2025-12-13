@@ -1,11 +1,11 @@
 package actions
 
 import (
+	"enva/libs"
+	"enva/services"
 	"fmt"
 	"strings"
 	"time"
-	"enva/libs"
-	"enva/services"
 )
 
 // WaitAptCacheReadyAction waits for apt-cache service to be ready
@@ -19,7 +19,7 @@ func NewWaitAptCacheReadyAction(sshService *services.SSHService, aptService *ser
 			SSHService:   sshService,
 			APTService:   aptService,
 			PCTService:   pctService,
-			ContainerID: containerID,
+			ContainerID:  containerID,
 			Cfg:          cfg,
 			ContainerCfg: containerCfg,
 		},
@@ -35,19 +35,19 @@ func (a *WaitAptCacheReadyAction) Execute() bool {
 		libs.GetLogger("wait_apt_cache_ready").Printf("Configuration not initialized")
 		return false
 	}
-	
+
 	libs.GetLogger("wait_apt_cache_ready").Printf("Verifying apt-cache service is ready...")
 	maxAttempts := 20
-	proxmoxHost := a.Cfg.LXCHost()
+	lxcHost := a.Cfg.LXCHost()
 	aptCachePort := a.Cfg.APTCachePort()
-	
-	lxcService := services.NewLXCService(proxmoxHost, &a.Cfg.SSH)
+
+	lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
 	if !lxcService.Connect() {
-		libs.GetLogger("wait_apt_cache_ready").Printf("Failed to connect to Proxmox host for apt-cache verification")
+		libs.GetLogger("wait_apt_cache_ready").Printf("Failed to connect to LXC host for apt-cache verification")
 		return false
 	}
 	defer lxcService.Disconnect()
-	
+
 	pctService := services.NewPCTService(lxcService)
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		serviceCheck, _ := pctService.Execute(a.ContainerCfg.ID, "systemctl is-active apt-cacher-ng 2>/dev/null || echo 'inactive'", libs.IntPtr(10))
@@ -103,5 +103,3 @@ func (a *WaitAptCacheReadyAction) Execute() bool {
 	}
 	return false
 }
-
-

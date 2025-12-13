@@ -1,12 +1,12 @@
 package actions
 
 import (
-	"fmt"
-	"strings"
-	"time"
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
+	"fmt"
+	"strings"
+	"time"
 )
 
 // CreateContainerAction creates container without executing actions
@@ -21,7 +21,7 @@ func NewCreateContainerAction(sshService *services.SSHService, aptService *servi
 			SSHService:   sshService,
 			APTService:   aptService,
 			PCTService:   pctService,
-			ContainerID: containerID,
+			ContainerID:  containerID,
 			Cfg:          cfg,
 			ContainerCfg: containerCfg,
 		},
@@ -38,7 +38,7 @@ func (a *CreateContainerAction) Execute() bool {
 		libs.GetLogger("create_container").Printf("Container config or lab config is missing")
 		return false
 	}
-	proxmoxHost := a.Cfg.LXCHost()
+	lxcHost := a.Cfg.LXCHost()
 	containerIDInt := a.ContainerCfg.ID
 	ipAddress := ""
 	if a.ContainerCfg.IPAddress != nil {
@@ -53,9 +53,9 @@ func (a *CreateContainerAction) Execute() bool {
 	} else {
 		templateNameStr = templateName
 	}
-	lxcService := services.NewLXCService(proxmoxHost, &a.Cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
 	if !lxcService.Connect() {
-		libs.GetLogger("create_container").Printf("Failed to connect to Proxmox host %s", proxmoxHost)
+		libs.GetLogger("create_container").Printf("Failed to connect to LXC host %s", lxcHost)
 		return false
 	}
 	defer lxcService.Disconnect()
@@ -77,7 +77,7 @@ func (a *CreateContainerAction) Execute() bool {
 		shouldBeNested = *a.ContainerCfg.Nested
 	}
 	libs.GetLogger("create_container").Printf("Checking if container %d already exists...", containerIDInt)
-	containerAlreadyExists := libs.ContainerExists(proxmoxHost, containerIDInt, a.Cfg, lxcService)
+	containerAlreadyExists := libs.ContainerExists(lxcHost, containerIDInt, a.Cfg, lxcService)
 	if containerAlreadyExists && a.Plan != nil && a.Plan.StartStep > 1 {
 		if shouldBePrivileged {
 			configCmd := fmt.Sprintf("pct config %d | grep -E '^unprivileged:' || echo 'unprivileged: 1'", containerIDInt)
@@ -85,7 +85,7 @@ func (a *CreateContainerAction) Execute() bool {
 			isUnprivileged := strings.Contains(configOutput, "unprivileged: 1")
 			if isUnprivileged {
 				libs.GetLogger("create_container").Printf("Container %d exists but is unprivileged - config requires privileged. Destroying and recreating...", containerIDInt)
-				libs.DestroyContainer(proxmoxHost, containerIDInt, a.Cfg, lxcService)
+				libs.DestroyContainer(lxcHost, containerIDInt, a.Cfg, lxcService)
 				containerAlreadyExists = false
 			} else {
 				libs.GetLogger("create_container").Printf("Container %d already exists and privilege status matches config, skipping creation", containerIDInt)
@@ -110,7 +110,7 @@ func (a *CreateContainerAction) Execute() bool {
 	}
 	if containerAlreadyExists {
 		libs.GetLogger("create_container").Printf("Container %d already exists, destroying it first...", containerIDInt)
-		libs.DestroyContainer(proxmoxHost, containerIDInt, a.Cfg, lxcService)
+		libs.DestroyContainer(lxcHost, containerIDInt, a.Cfg, lxcService)
 	}
 	resources := a.ContainerCfg.Resources
 	if resources == nil {
@@ -210,4 +210,3 @@ func (a *CreateContainerAction) Execute() bool {
 	libs.GetLogger("create_container").Printf("Container %d created successfully", containerIDInt)
 	return true
 }
-

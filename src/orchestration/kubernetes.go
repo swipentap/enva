@@ -1,12 +1,12 @@
 package orchestration
 
 import (
+	"enva/libs"
+	"enva/services"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-	"enva/libs"
-	"enva/services"
 )
 
 // KubernetesDeployContext holds shared data computed once for Kubernetes deployment
@@ -17,8 +17,8 @@ type KubernetesDeployContext struct {
 	Token   *string
 }
 
-// ProxmoxHost returns cached proxmox host string
-func (k *KubernetesDeployContext) ProxmoxHost() string {
+// LXCHost returns cached LXC host string
+func (k *KubernetesDeployContext) LXCHost() string {
 	return k.Cfg.LXCHost()
 }
 
@@ -92,10 +92,10 @@ func BuildKubernetesContext(cfg *libs.LabConfig) *KubernetesDeployContext {
 }
 
 func getK3sToken(context *KubernetesDeployContext, controlConfig *libs.ContainerConfig) bool {
-	proxmoxHost := context.ProxmoxHost()
+	lxcHost := context.LXCHost()
 	cfg := context.Cfg
 	controlID := controlConfig.ID
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -130,7 +130,7 @@ func getK3sToken(context *KubernetesDeployContext, controlConfig *libs.Container
 }
 
 func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.ContainerConfig) bool {
-	proxmoxHost := context.ProxmoxHost()
+	lxcHost := context.LXCHost()
 	cfg := context.Cfg
 	controlID := controlConfig.ID
 	controlIP := ""
@@ -142,7 +142,7 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 		libs.GetLogger("kubernetes").Printf("k3s token not available")
 		return false
 	}
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -239,10 +239,10 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 }
 
 func taintControlPlane(context *KubernetesDeployContext, controlConfig *libs.ContainerConfig) bool {
-	proxmoxHost := context.ProxmoxHost()
+	lxcHost := context.LXCHost()
 	cfg := context.Cfg
 	controlID := controlConfig.ID
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -290,7 +290,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		libs.GetLogger("kubernetes").Printf("Rancher not configured, skipping installation")
 		return true
 	}
-	proxmoxHost := context.ProxmoxHost()
+	lxcHost := context.LXCHost()
 	cfg := context.Cfg
 	controlID := controlConfig.ID
 	_ = "rancher/rancher:latest"
@@ -301,7 +301,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	if cfg.Services.Rancher.Port != nil {
 		_ = *cfg.Services.Rancher.Port
 	}
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -658,4 +658,3 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	}
 	return false
 }
-

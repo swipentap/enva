@@ -1,12 +1,12 @@
 package actions
 
 import (
-	"fmt"
-	"strings"
-	"time"
 	"enva/libs"
 	"enva/orchestration"
 	"enva/services"
+	"fmt"
+	"strings"
+	"time"
 )
 
 // InstallCockroachdbAction installs CockroachDB on Kubernetes cluster
@@ -20,7 +20,7 @@ func NewInstallCockroachdbAction(sshService *services.SSHService, aptService *se
 			SSHService:   sshService,
 			APTService:   aptService,
 			PCTService:   pctService,
-			ContainerID: containerID,
+			ContainerID:  containerID,
 			Cfg:          cfg,
 			ContainerCfg: containerCfg,
 		},
@@ -55,7 +55,7 @@ func (a *InstallCockroachdbAction) Execute() bool {
 		return false
 	}
 	controlConfig := context.Control[0]
-	proxmoxHost := context.ProxmoxHost()
+	lxcHost := context.LXCHost()
 	controlID := controlConfig.ID
 	cockroachdbCfg := a.Cfg.Services.CockroachDB
 	cockroachdbVersion := "v25.2.4"
@@ -86,7 +86,7 @@ func (a *InstallCockroachdbAction) Execute() bool {
 	if cockroachdbCfg.GRPCPort != nil {
 		grpcNodeport = *cockroachdbCfg.GRPCPort
 	}
-	lxcService := services.NewLXCService(proxmoxHost, &a.Cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -303,4 +303,3 @@ spec:
 	libs.GetLogger("install_cockroachdb").Printf("CockroachDB installed successfully")
 	return true
 }
-

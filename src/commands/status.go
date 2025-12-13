@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
+	"fmt"
 )
 
 // Status handles status display
@@ -27,8 +27,8 @@ func NewStatus(cfg *libs.LabConfig, lxcService *services.LXCService, pctService 
 func (s *Status) Run() error {
 	logger := libs.GetLogger("status")
 	if !s.lxcService.Connect() {
-		logger.Error("Failed to connect to Proxmox host %s", s.cfg.LXCHost())
-		return fmt.Errorf("failed to connect to Proxmox host")
+		logger.Error("Failed to connect to LXC host %s", s.cfg.LXCHost())
+		return fmt.Errorf("failed to connect to LXC host")
 	}
 	defer s.lxcService.Disconnect()
 	logger.Info("==================================================")
@@ -42,7 +42,7 @@ func (s *Status) Run() error {
 	} else {
 		logger.Info("  No containers found")
 	}
-	templateDir := s.cfg.ProxmoxTemplateDir()
+	templateDir := s.cfg.LXCTemplateDir()
 	logger.Info("Templates:")
 	templateCmd := fmt.Sprintf("ls -lh %s/*.tar.zst 2>/dev/null || echo 'No templates'", templateDir)
 	result, _ = s.lxcService.Execute(templateCmd, nil)

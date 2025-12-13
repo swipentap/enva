@@ -137,7 +137,7 @@ func (s *SSHService) Execute(command string, timeout *int, sudo ...bool) (string
 		}
 	}
 
-	libs.GetLogger("ssh").Printf("Running: %s", command)
+	libs.GetLogger("ssh").Debug("Running: %s", command)
 
 	// Create session
 	session, err := s.client.NewSession()
@@ -252,4 +252,3 @@ func quoteCommand(cmd string) string {
 	}
 	return fmt.Sprintf("'%s'", cmd)
 }
-

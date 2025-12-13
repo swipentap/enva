@@ -1,13 +1,13 @@
 package commands
 
 import (
+	"enva/libs"
+	"enva/services"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 	"time"
-	"enva/libs"
-	"enva/services"
 )
 
 // RestoreError is raised when restore fails
@@ -61,8 +61,8 @@ func (r *Restore) Run(backupName string) error {
 		return &RestoreError{Message: "Backup configuration not found"}
 	}
 	if !r.lxcService.Connect() {
-		logger.Error("Failed to connect to Proxmox host %s", r.cfg.LXCHost())
-		return &RestoreError{Message: "Failed to connect to Proxmox host"}
+		logger.Error("Failed to connect to LXC host %s", r.cfg.LXCHost())
+		return &RestoreError{Message: "Failed to connect to LXC host"}
 	}
 	defer r.lxcService.Disconnect()
 	var backupContainer *libs.ContainerConfig
@@ -190,8 +190,8 @@ func (r *Restore) Run(backupName string) error {
 			logger.Error("Backup file not found for item %s, skipping...", item.Name)
 			continue
 		}
-		proxmoxTemp := fmt.Sprintf("/tmp/%s", backupFileName)
-		pullCmd := fmt.Sprintf("pct pull %d %s %s", backupContainer.ID, backupFilePath, proxmoxTemp)
+		lxcTemp := fmt.Sprintf("/tmp/%s", backupFileName)
+		pullCmd := fmt.Sprintf("pct pull %d %s %s", backupContainer.ID, backupFilePath, lxcTemp)
 		timeout = 300
 		pullOutput, pullExit := r.lxcService.Execute(pullCmd, &timeout)
 		if pullExit == nil || *pullExit != 0 {
@@ -199,7 +199,7 @@ func (r *Restore) Run(backupName string) error {
 			return &RestoreError{Message: "Failed to pull backup file"}
 		}
 		sourceTemp := fmt.Sprintf("/tmp/%s", backupFileName)
-		pushCmd := fmt.Sprintf("pct push %d %s %s", item.SourceContainerID, proxmoxTemp, sourceTemp)
+		pushCmd := fmt.Sprintf("pct push %d %s %s", item.SourceContainerID, lxcTemp, sourceTemp)
 		timeout = 300
 		pushOutput, pushExit := r.lxcService.Execute(pushCmd, &timeout)
 		if pushExit == nil || *pushExit != 0 {
@@ -207,7 +207,7 @@ func (r *Restore) Run(backupName string) error {
 			return &RestoreError{Message: "Failed to push backup file to source container"}
 		}
 		timeout = 30
-		r.lxcService.Execute(fmt.Sprintf("rm -f %s", proxmoxTemp), &timeout)
+		r.lxcService.Execute(fmt.Sprintf("rm -f %s", lxcTemp), &timeout)
 		if isArchive {
 			logger.Info("  Extracting archive to: %s", item.SourcePath)
 			if item.Name == "k3s-etcd" {

@@ -1,6 +1,6 @@
 # EnvA - Go Implementation
 
-This is the Go implementation of the EnvA CLI tool for managing Proxmox LXC containers and Docker Swarm.
+This is the Go implementation of the EnvA CLI tool for managing LXC containers and Docker Swarm.
 
 ## Building
 

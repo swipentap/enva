@@ -1,12 +1,12 @@
 package orchestration
 
 import (
-	"fmt"
-	"strings"
-	"time"
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
+	"fmt"
+	"strings"
+	"time"
 )
 
 // NodeInfo represents a container needed for orchestration steps
@@ -134,8 +134,8 @@ func getAPTCacheProxy(cfg *libs.LabConfig) (*string, *string) {
 }
 
 func fixAPTSources(nodes []*NodeInfo, cfg *libs.LabConfig) bool {
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -167,8 +167,8 @@ func installGlusterPackages(nodes []*NodeInfo, proxySettings [2]*string, cfg *li
 
 func configureGlusterNode(node *NodeInfo, proxySettings [2]*string, cfg *libs.LabConfig) bool {
 	maxRetries := 2
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -262,8 +262,8 @@ func ensureGlusterdRunning(node *NodeInfo, cfg *libs.LabConfig, pctService *serv
 
 func createBricks(nodes []*NodeInfo, brickPath string, cfg *libs.LabConfig) bool {
 	libs.GetLogger("gluster").Printf("Creating brick directories on all nodes...")
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -315,8 +315,8 @@ func resolveGlusterCmd(manager *NodeInfo, cfg *libs.LabConfig) string {
 
 func peerWorkers(manager *NodeInfo, workers []*NodeInfo, glusterCmd string, cfg *libs.LabConfig) bool {
 	libs.GetLogger("gluster").Printf("Peering worker nodes together...")
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -336,8 +336,8 @@ func peerWorkers(manager *NodeInfo, workers []*NodeInfo, glusterCmd string, cfg 
 
 func waitForPeers(manager *NodeInfo, workers []*NodeInfo, glusterCmd string, cfg *libs.LabConfig) bool {
 	libs.GetLogger("gluster").Printf("Verifying peer status...")
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -370,11 +370,11 @@ func waitForPeers(manager *NodeInfo, workers []*NodeInfo, glusterCmd string, cfg
 }
 
 func ensureVolume(manager *NodeInfo, workers []*NodeInfo, glusterCmd string, glusterCfg *libs.GlusterFSConfig, cfg *libs.LabConfig) bool {
-	proxmoxHost := cfg.LXCHost()
+	lxcHost := cfg.LXCHost()
 	volumeName := glusterCfg.VolumeName
 	brickPath := glusterCfg.BrickPath
 	replicaCount := glusterCfg.ReplicaCount
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -416,8 +416,8 @@ func mountGlusterVolume(manager *NodeInfo, workers []*NodeInfo, glusterCfg *libs
 	nodes := append([]*NodeInfo{manager}, workers...)
 	volumeName := glusterCfg.VolumeName
 	mountPoint := glusterCfg.MountPoint
-	proxmoxHost := cfg.LXCHost()
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcHost := cfg.LXCHost()
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
 		return false
 	}
@@ -489,7 +489,7 @@ func verifyMount(node *NodeInfo, mountPoint string, cfg *libs.LabConfig, pctServ
 }
 
 func mountGlusterOnClients(manager *NodeInfo, glusterCfg *libs.GlusterFSConfig, cfg *libs.LabConfig) bool {
-	proxmoxHost := cfg.LXCHost()
+	lxcHost := cfg.LXCHost()
 	volumeName := glusterCfg.VolumeName
 	mountPoint := glusterCfg.MountPoint
 	var clientNodes []*libs.ContainerConfig
@@ -528,9 +528,9 @@ func mountGlusterOnClients(manager *NodeInfo, glusterCfg *libs.GlusterFSConfig, 
 		libs.GetLogger("gluster").Printf("No K3s nodes found for GlusterFS client mounting")
 		return true
 	}
-	lxcService := services.NewLXCService(proxmoxHost, &cfg.SSH)
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
 	if !lxcService.Connect() {
-		libs.GetLogger("gluster").Printf("Failed to connect to Proxmox host for client mounting")
+		libs.GetLogger("gluster").Printf("Failed to connect to LXC host for client mounting")
 		return false
 	}
 	defer lxcService.Disconnect()
@@ -647,5 +647,3 @@ func logGlusterSummary(glusterCfg *libs.GlusterFSConfig) {
 	libs.GetLogger("gluster").Printf("  Mount point: %s on all nodes", glusterCfg.MountPoint)
 	libs.GetLogger("gluster").Printf("  Replication: %dx", glusterCfg.ReplicaCount)
 }
-
-

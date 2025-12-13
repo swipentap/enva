@@ -5,16 +5,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"enva/commands"
 	"enva/libs"
 	"enva/services"
+
+	"github.com/spf13/cobra"
 )
 
 var (
-	verbose     bool
-	configFile  string
-	environment string
+	verbose    bool
+	configFile string
 )
 
 func main() {
@@ -38,18 +38,18 @@ func main() {
 
 	var rootCmd = &cobra.Command{
 		Use:   "enva",
-		Short: "EnvA CLI - Manage Proxmox LXC containers and Docker Swarm",
-		Long:  "EnvA CLI tool for deploying and managing Kubernetes (k3s) clusters with supporting services on Proxmox LXC containers",
+		Short: "EnvA CLI - Manage LXC containers and Docker Swarm",
+		Long:  "EnvA CLI tool for deploying and managing Kubernetes (k3s) clusters with supporting services on LXC containers",
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Show stdout from SSH service")
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Path to YAML configuration file (default: enva.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&environment, "environment", "e", "", "Environment to use (prod, test, dev). Defaults to 'test' if environments section exists")
 
 	// Deploy command
 	var deployCmd = &cobra.Command{
-		Use:          "deploy",
+		Use:          "deploy [environment]",
 		Short:        "Deploy complete environment: apt-cache, templates, and Docker Swarm",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runDeploy,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -60,8 +60,9 @@ func main() {
 
 	// Cleanup command
 	var cleanupCmd = &cobra.Command{
-		Use:          "cleanup",
+		Use:          "cleanup [environment]",
 		Short:        "Remove all containers and templates",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runCleanup,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -69,8 +70,9 @@ func main() {
 
 	// Redeploy command
 	var redeployCmd = &cobra.Command{
-		Use:          "redeploy",
+		Use:          "redeploy [environment]",
 		Short:        "Cleanup and then deploy complete environment",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runRedeploy,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -80,8 +82,9 @@ func main() {
 
 	// Status command
 	var statusCmd = &cobra.Command{
-		Use:          "status",
+		Use:          "status [environment]",
 		Short:        "Show current environment status",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runStatus,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -89,8 +92,9 @@ func main() {
 
 	// Backup command
 	var backupCmd = &cobra.Command{
-		Use:          "backup",
+		Use:          "backup [environment]",
 		Short:        "Backup cluster according to enva.yaml configuration",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runBackup,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -98,8 +102,9 @@ func main() {
 
 	// Restore command
 	var restoreCmd = &cobra.Command{
-		Use:          "restore",
+		Use:          "restore [environment]",
 		Short:        "Restore cluster from backup",
+		Args:         cobra.ExactArgs(1),
 		RunE:         runRestore,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
@@ -113,7 +118,7 @@ func main() {
 	}
 }
 
-func getConfig() (*libs.LabConfig, error) {
+func getConfig(environment string) (*libs.LabConfig, error) {
 	// Determine config file path (matching Python: use script directory)
 	cfgPath := configFile
 	if cfgPath == "" {
@@ -143,18 +148,8 @@ func getConfig() (*libs.LabConfig, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Determine environment
-	env := environment
-	if env == "" {
-		if envs, ok := configData["environments"].(map[string]interface{}); ok && len(envs) > 0 {
-			env = "test"
-		}
-	}
-
-	var envPtr *string
-	if env != "" {
-		envPtr = &env
-	}
+	// Environment is required
+	envPtr := &environment
 
 	// Create config (logger already initialized in main)
 	cfg, err := libs.FromDict(configData, verbose, envPtr)
@@ -166,7 +161,7 @@ func getConfig() (*libs.LabConfig, error) {
 }
 
 func runDeploy(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -187,7 +182,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 }
 
 func runCleanup(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -199,7 +194,7 @@ func runCleanup(cmd *cobra.Command, args []string) error {
 }
 
 func runRedeploy(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -237,7 +232,7 @@ func runRedeploy(cmd *cobra.Command, args []string) error {
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -249,7 +244,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 }
 
 func runBackup(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -261,7 +256,7 @@ func runBackup(cmd *cobra.Command, args []string) error {
 }
 
 func runRestore(cmd *cobra.Command, args []string) error {
-	cfg, err := getConfig()
+	cfg, err := getConfig(args[0])
 	if err != nil {
 		return err
 	}
@@ -276,4 +271,3 @@ func runRestore(cmd *cobra.Command, args []string) error {
 	restoreCmd := commands.NewRestore(cfg, lxcService, pctService)
 	return restoreCmd.Run(backupName)
 }
-

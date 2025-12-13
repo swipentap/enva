@@ -2,8 +2,9 @@ package libs
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ContainerResources represents container resource allocation
@@ -16,32 +17,32 @@ type ContainerResources struct {
 
 // ContainerConfig represents container configuration
 type ContainerConfig struct {
-	Name       string                `yaml:"name"`
-	ID         int                   `yaml:"id"`
-	IP         int                   `yaml:"ip"` // Last octet only
-	Hostname   string                `yaml:"hostname"`
-	Template   *string               `yaml:"template,omitempty"`
-	Resources  *ContainerResources   `yaml:"resources,omitempty"`
+	Name       string                 `yaml:"name"`
+	ID         int                    `yaml:"id"`
+	IP         int                    `yaml:"ip"` // Last octet only
+	Hostname   string                 `yaml:"hostname"`
+	Template   *string                `yaml:"template,omitempty"`
+	Resources  *ContainerResources    `yaml:"resources,omitempty"`
 	Params     map[string]interface{} `yaml:"params,omitempty"`
-	Actions    []string              `yaml:"actions,omitempty"`
-	IPAddress  *string               // Full IP, computed later
-	Privileged *bool                 `yaml:"privileged,omitempty"`
-	Nested     *bool                 `yaml:"nested,omitempty"`
-	Autostart  *bool                 `yaml:"autostart,omitempty"`
+	Actions    []string               `yaml:"actions,omitempty"`
+	IPAddress  *string                // Full IP, computed later
+	Privileged *bool                  `yaml:"privileged,omitempty"`
+	Nested     *bool                  `yaml:"nested,omitempty"`
+	Autostart  *bool                  `yaml:"autostart,omitempty"`
 }
 
 // TemplateConfig represents template configuration
 type TemplateConfig struct {
-	Name      string              `yaml:"name"`
-	ID        int                 `yaml:"id"`
-	IP        int                 `yaml:"ip"` // Last octet only
-	Hostname  string              `yaml:"hostname"`
-	Template  *string             `yaml:"template,omitempty"` // "base" or name of another template
-	Resources *ContainerResources `yaml:"resources,omitempty"`
-	IPAddress *string             // Full IP, computed later
-	Actions   []string            `yaml:"actions,omitempty"`
-	Privileged *bool              `yaml:"privileged,omitempty"`
-	Nested     *bool              `yaml:"nested,omitempty"`
+	Name       string              `yaml:"name"`
+	ID         int                 `yaml:"id"`
+	IP         int                 `yaml:"ip"` // Last octet only
+	Hostname   string              `yaml:"hostname"`
+	Template   *string             `yaml:"template,omitempty"` // "base" or name of another template
+	Resources  *ContainerResources `yaml:"resources,omitempty"`
+	IPAddress  *string             // Full IP, computed later
+	Actions    []string            `yaml:"actions,omitempty"`
+	Privileged *bool               `yaml:"privileged,omitempty"`
+	Nested     *bool               `yaml:"nested,omitempty"`
 }
 
 // KubernetesConfig represents Kubernetes (k3s) configuration
@@ -122,9 +123,9 @@ type DNSConfig struct {
 
 // DockerConfig represents Docker configuration
 type DockerConfig struct {
-	Version      string `yaml:"version"`
-	Repository   string `yaml:"repository"`
-	Release      string `yaml:"release"`
+	Version       string `yaml:"version"`
+	Repository    string `yaml:"repository"`
+	Release       string `yaml:"release"`
 	UbuntuRelease string `yaml:"ubuntu_release"`
 }
 
@@ -137,25 +138,25 @@ type TemplatePatternsConfig struct {
 
 // SSHConfig represents SSH configuration
 type SSHConfig struct {
-	ConnectTimeout    int     `yaml:"connect_timeout"`
-	BatchMode         bool    `yaml:"batch_mode"`
-	DefaultExecTimeout int    `yaml:"default_exec_timeout"`
-	ReadBufferSize    int     `yaml:"read_buffer_size"`
-	PollInterval      float64 `yaml:"poll_interval"`
-	DefaultUsername   string  `yaml:"default_username"`
-	LookForKeys       bool    `yaml:"look_for_keys"`
-	AllowAgent        bool    `yaml:"allow_agent"`
-	Verbose           bool    `yaml:"verbose"`
+	ConnectTimeout     int     `yaml:"connect_timeout"`
+	BatchMode          bool    `yaml:"batch_mode"`
+	DefaultExecTimeout int     `yaml:"default_exec_timeout"`
+	ReadBufferSize     int     `yaml:"read_buffer_size"`
+	PollInterval       float64 `yaml:"poll_interval"`
+	DefaultUsername    string  `yaml:"default_username"`
+	LookForKeys        bool    `yaml:"look_for_keys"`
+	AllowAgent         bool    `yaml:"allow_agent"`
+	Verbose            bool    `yaml:"verbose"`
 }
 
 // WaitsConfig represents wait/retry configuration
 type WaitsConfig struct {
-	ContainerStartup        int `yaml:"container_startup"`
+	ContainerStartup          int `yaml:"container_startup"`
 	ContainerReadyMaxAttempts int `yaml:"container_ready_max_attempts"`
-	ContainerReadySleep     int `yaml:"container_ready_sleep"`
-	NetworkConfig           int `yaml:"network_config"`
-	ServiceStart            int `yaml:"service_start"`
-	GlusterFSSetup          int `yaml:"glusterfs_setup"`
+	ContainerReadySleep       int `yaml:"container_ready_sleep"`
+	NetworkConfig             int `yaml:"network_config"`
+	ServiceStart              int `yaml:"service_start"`
+	GlusterFSSetup            int `yaml:"glusterfs_setup"`
 }
 
 // GlusterFSNodeConfig represents a GlusterFS cluster node
@@ -174,7 +175,7 @@ type GlusterFSConfig struct {
 
 // TimeoutsConfig represents timeout configuration
 type TimeoutsConfig struct {
-	APTCache      int `yaml:"apt_cache"`
+	APTCache       int `yaml:"apt_cache"`
 	UbuntuTemplate int `yaml:"ubuntu_template"`
 }
 
@@ -189,36 +190,36 @@ type BackupItemConfig struct {
 
 // BackupConfig represents backup configuration
 type BackupConfig struct {
-	ContainerID int               `yaml:"container_id"`
-	BackupDir   string            `yaml:"backup_dir"`
-	NamePrefix  string            `yaml:"name_prefix"`
+	ContainerID int                `yaml:"container_id"`
+	BackupDir   string             `yaml:"backup_dir"`
+	NamePrefix  string             `yaml:"name_prefix"`
 	Items       []BackupItemConfig `yaml:"items"`
 }
 
 // LabConfig represents main lab configuration class
 type LabConfig struct {
-	Network          string
-	LXC              LXCConfig
-	Containers       []ContainerConfig
-	Templates        []TemplateConfig
-	Services         ServicesConfig
-	Users            UsersConfig
-	DNS              DNSConfig
-	Docker           DockerConfig
-	TemplateConfig   TemplatePatternsConfig
-	SSH              SSHConfig
-	Waits            WaitsConfig
-	Timeouts         TimeoutsConfig
-	IDBase           int
-	PostgresHost     *string
-	GlusterFS        *GlusterFSConfig
-	Kubernetes       *KubernetesConfig
+	Network           string
+	LXC               LXCConfig
+	Containers        []ContainerConfig
+	Templates         []TemplateConfig
+	Services          ServicesConfig
+	Users             UsersConfig
+	DNS               DNSConfig
+	Docker            DockerConfig
+	TemplateConfig    TemplatePatternsConfig
+	SSH               SSHConfig
+	Waits             WaitsConfig
+	Timeouts          TimeoutsConfig
+	IDBase            int
+	PostgresHost      *string
+	GlusterFS         *GlusterFSConfig
+	Kubernetes        *KubernetesConfig
 	KubernetesActions []string
-	Backup           *BackupConfig
-	APTCacheCT       string
+	Backup            *BackupConfig
+	APTCacheCT        string
 	// Computed fields
-	NetworkBase      *string
-	Gateway          *string
+	NetworkBase       *string
+	Gateway           *string
 	KubernetesControl []ContainerConfig
 	KubernetesWorkers []ContainerConfig
 }
@@ -297,22 +298,22 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			ctID, _ := ct["id"].(int)
 			ip, _ := ct["ip"].(int)
 			hostname, _ := ct["hostname"].(string)
-			
+
 			var template *string
 			if t, ok := ct["template"].(string); ok {
 				template = &t
 			}
-			
+
 			var resources *ContainerResources
 			if res, ok := ct["resources"].(map[string]interface{}); ok {
 				resources = makeResources(res)
 			}
-			
+
 			params := make(map[string]interface{})
 			if p, ok := ct["params"].(map[string]interface{}); ok {
 				params = p
 			}
-			
+
 			actions := []string{}
 			if a, ok := ct["actions"].([]interface{}); ok {
 				for _, action := range a {
@@ -321,34 +322,34 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 					}
 				}
 			}
-			
+
 			var privileged *bool
 			if p, ok := ct["privileged"].(bool); ok {
 				privileged = &p
 			}
-			
+
 			var nested *bool
 			if n, ok := ct["nested"].(bool); ok {
 				nested = &n
 			}
-			
+
 			autostart := true
 			if a, ok := ct["autostart"].(bool); ok {
 				autostart = a
 			}
-			
+
 			containers = append(containers, ContainerConfig{
-				Name:      name,
-				ID:        ctID + idBase,
-				IP:        ip,
-				Hostname:  hostname,
-				Template:  template,
-				Resources: resources,
-				Params:    params,
-				Actions:   actions,
+				Name:       name,
+				ID:         ctID + idBase,
+				IP:         ip,
+				Hostname:   hostname,
+				Template:   template,
+				Resources:  resources,
+				Params:     params,
+				Actions:    actions,
 				Privileged: privileged,
-				Nested:    nested,
-				Autostart: &autostart,
+				Nested:     nested,
+				Autostart:  &autostart,
 			})
 		}
 	}
@@ -365,17 +366,17 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			tmplID, _ := tmpl["id"].(int)
 			ip, _ := tmpl["ip"].(int)
 			hostname, _ := tmpl["hostname"].(string)
-			
+
 			var template *string
 			if t, ok := tmpl["template"].(string); ok {
 				template = &t
 			}
-			
+
 			var resources *ContainerResources
 			if res, ok := tmpl["resources"].(map[string]interface{}); ok {
 				resources = makeResources(res)
 			}
-			
+
 			actions := []string{}
 			if a, ok := tmpl["actions"].([]interface{}); ok {
 				for _, action := range a {
@@ -384,27 +385,27 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 					}
 				}
 			}
-			
+
 			var privileged *bool
 			if p, ok := tmpl["privileged"].(bool); ok {
 				privileged = &p
 			}
-			
+
 			var nested *bool
 			if n, ok := tmpl["nested"].(bool); ok {
 				nested = &n
 			}
-			
+
 			templates = append(templates, TemplateConfig{
-				Name:      name,
-				ID:        tmplID + idBase,
-				IP:        ip,
-				Hostname:  hostname,
-				Template:  template,
-				Resources: resources,
-				Actions:   actions,
+				Name:       name,
+				ID:         tmplID + idBase,
+				IP:         ip,
+				Hostname:   hostname,
+				Template:   template,
+				Resources:  resources,
+				Actions:    actions,
 				Privileged: privileged,
-				Nested:    nested,
+				Nested:     nested,
 			})
 		}
 	}
@@ -427,7 +428,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				control = append(control, cID)
 			}
 		}
-		
+
 		workers := []int{}
 		if wList, ok := k8sData["workers"].([]interface{}); ok {
 			for _, w := range wList {
@@ -442,12 +443,12 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				workers = append(workers, wID)
 			}
 		}
-		
+
 		kubernetes = &KubernetesConfig{
 			Control: control,
 			Workers: workers,
 		}
-		
+
 		if actions, ok := k8sData["actions"].([]interface{}); ok {
 			for _, action := range actions {
 				if actionStr, ok := action.(string); ok {
@@ -462,29 +463,23 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	if envData != nil {
 		if lxc, ok := envData["lxc"].(map[string]interface{}); ok {
 			lxcData = lxc
-		} else if proxmox, ok := envData["proxmox"].(map[string]interface{}); ok {
-			// Backward compatibility: support old "proxmox" key
-			lxcData = proxmox
 		}
 	}
 	if lxcData == nil {
 		if lxc, ok := data["lxc"].(map[string]interface{}); ok {
 			lxcData = lxc
-		} else if proxmox, ok := data["proxmox"].(map[string]interface{}); ok {
-			// Backward compatibility: support old "proxmox" key
-			lxcData = proxmox
 		}
 	}
 	if lxcData == nil {
 		return nil, fmt.Errorf("LXC configuration not found in environment or top-level config")
 	}
-	
+
 	host, _ := lxcData["host"].(string)
 	storage, _ := lxcData["storage"].(string)
 	bridge, _ := lxcData["bridge"].(string)
 	templateDir, _ := lxcData["template_dir"].(string)
 	gatewayOctet, _ := lxcData["gateway_octet"].(int)
-	
+
 	lxc := LXCConfig{
 		Host:         host,
 		Storage:      storage,
@@ -498,14 +493,14 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	if !ok {
 		return nil, fmt.Errorf("services section not found")
 	}
-	
+
 	aptCacheData, _ := servicesData["apt_cache"].(map[string]interface{})
 	aptCachePort, _ := aptCacheData["port"].(int)
-	
+
 	services := ServicesConfig{
 		APTcache: ServiceConfig{Port: &aptCachePort},
 	}
-	
+
 	if pgData, ok := servicesData["postgresql"].(map[string]interface{}); ok {
 		port, _ := pgData["port"].(int)
 		username := "postgres"
@@ -527,7 +522,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			Database: &database,
 		}
 	}
-	
+
 	if haproxyData, ok := servicesData["haproxy"].(map[string]interface{}); ok {
 		var httpPort, httpsPort, statsPort *int
 		if hp, ok := haproxyData["http_port"].(int); ok {
@@ -545,7 +540,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			StatsPort: statsPort,
 		}
 	}
-	
+
 	if rancherData, ok := servicesData["rancher"].(map[string]interface{}); ok {
 		var port *int
 		var image *string
@@ -560,7 +555,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			Image: image,
 		}
 	}
-	
+
 	if longhornData, ok := servicesData["longhorn"].(map[string]interface{}); ok {
 		var port *int
 		if p, ok := longhornData["port"].(int); ok {
@@ -570,12 +565,12 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			Port: port,
 		}
 	}
-	
+
 	if cockroachData, ok := servicesData["cockroachdb"].(map[string]interface{}); ok {
 		var sqlPort, httpPort, grpcPort *int
 		var version, storage, password *string
 		var nodes *int
-		
+
 		if sp, ok := cockroachData["sql_port"].(int); ok {
 			sqlPort = &sp
 		}
@@ -597,15 +592,15 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if n, ok := cockroachData["nodes"].(int); ok {
 			nodes = &n
 		}
-		
+
 		services.CockroachDB = &ServiceConfig{
-			SQLPort:  sqlPort,
+			SQLPort:   sqlPort,
 			HTTPPort2: httpPort,
-			GRPCPort: grpcPort,
-			Version:  version,
-			Storage:  storage,
-			Password: password,
-			Nodes:    nodes,
+			GRPCPort:  grpcPort,
+			Version:   version,
+			Storage:   storage,
+			Password:  password,
+			Nodes:     nodes,
 		}
 	}
 
@@ -614,7 +609,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	if !ok {
 		return nil, fmt.Errorf("users section not found")
 	}
-	
+
 	userList := []UserConfig{}
 	if usersArray, ok := usersData.([]interface{}); ok {
 		// New format: list of users
@@ -690,7 +685,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	docker := DockerConfig{
 		Version:       version,
 		Repository:    repository,
-		Release:      release,
+		Release:       release,
 		UbuntuRelease: ubuntuRelease,
 	}
 
@@ -699,7 +694,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	if tc, ok := data["template_config"].(map[string]interface{}); ok {
 		templateConfigData = tc
 	}
-	
+
 	base := []string{}
 	if b, ok := templateConfigData["base"].([]interface{}); ok {
 		for _, item := range b {
@@ -708,7 +703,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			}
 		}
 	}
-	
+
 	patterns := make(map[string]string)
 	if p, ok := templateConfigData["patterns"].(map[string]interface{}); ok {
 		for k, v := range p {
@@ -717,7 +712,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			}
 		}
 	}
-	
+
 	preserve := []string{}
 	if pr, ok := templateConfigData["preserve"].([]interface{}); ok {
 		for _, item := range pr {
@@ -726,7 +721,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			}
 		}
 	}
-	
+
 	templateConfig := TemplatePatternsConfig{
 		Base:     base,
 		Patterns: patterns,
@@ -764,12 +759,12 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	serviceStart, _ := waitsData["service_start"].(int)
 	glusterFSSetup, _ := waitsData["glusterfs_setup"].(int)
 	waits := WaitsConfig{
-		ContainerStartup:         containerStartup,
+		ContainerStartup:          containerStartup,
 		ContainerReadyMaxAttempts: containerReadyMaxAttempts,
-		ContainerReadySleep:      containerReadySleep,
-		NetworkConfig:            networkConfig,
-		ServiceStart:             serviceStart,
-		GlusterFSSetup:           glusterFSSetup,
+		ContainerReadySleep:       containerReadySleep,
+		NetworkConfig:             networkConfig,
+		ServiceStart:              serviceStart,
+		GlusterFSSetup:            glusterFSSetup,
 	}
 
 	// Parse timeouts
@@ -803,7 +798,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if rc, ok := glusterfsData["replica_count"].(int); ok {
 			replicaCount = rc
 		}
-		
+
 		clusterNodes := []GlusterFSNodeConfig{}
 		if cn, ok := glusterfsData["cluster_nodes"].([]interface{}); ok {
 			for _, nodeInterface := range cn {
@@ -818,7 +813,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				clusterNodes = append(clusterNodes, GlusterFSNodeConfig{ID: nodeID})
 			}
 		}
-		
+
 		glusterfs = &GlusterFSConfig{
 			VolumeName:   volumeName,
 			BrickPath:    brickPath,
@@ -840,7 +835,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if np, ok := backupData["name_prefix"].(string); ok {
 			namePrefix = np
 		}
-		
+
 		items := []BackupItemConfig{}
 		if itemsList, ok := backupData["items"].([]interface{}); ok {
 			for _, itemInterface := range itemsList {
@@ -851,7 +846,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				name, _ := item["name"].(string)
 				sourceContainerID, _ := item["source_container_id"].(int)
 				sourcePath, _ := item["source_path"].(string)
-				
+
 				var archiveBase, archivePath *string
 				if ab, ok := item["archive_base"].(string); ok {
 					archiveBase = &ab
@@ -859,7 +854,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				if ap, ok := item["archive_path"].(string); ok {
 					archivePath = &ap
 				}
-				
+
 				items = append(items, BackupItemConfig{
 					Name:              name,
 					SourceContainerID: sourceContainerID + idBase,
@@ -869,7 +864,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 				})
 			}
 		}
-		
+
 		backup = &BackupConfig{
 			ContainerID: containerID + idBase,
 			BackupDir:   backupDir,
@@ -902,25 +897,25 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	}
 
 	config := &LabConfig{
-		Network:          network,
-		LXC:              lxc,
-		Containers:       containers,
-		Templates:        templates,
-		Services:         services,
-		Users:            users,
-		DNS:              dns,
-		Docker:           docker,
-		TemplateConfig:   templateConfig,
-		SSH:              ssh,
-		Waits:            waits,
-		Timeouts:         timeouts,
-		IDBase:           idBase,
-		PostgresHost:     postgresHost,
-		GlusterFS:        glusterfs,
-		Kubernetes:       kubernetes,
+		Network:           network,
+		LXC:               lxc,
+		Containers:        containers,
+		Templates:         templates,
+		Services:          services,
+		Users:             users,
+		DNS:               dns,
+		Docker:            docker,
+		TemplateConfig:    templateConfig,
+		SSH:               ssh,
+		Waits:             waits,
+		Timeouts:          timeouts,
+		IDBase:            idBase,
+		PostgresHost:      postgresHost,
+		GlusterFS:         glusterfs,
+		Kubernetes:        kubernetes,
 		KubernetesActions: kubernetesActions,
-		Backup:           backup,
-		APTCacheCT:       aptCacheCT,
+		Backup:            backup,
+		APTCacheCT:        aptCacheCT,
 	}
 
 	config.ComputeDerivedFields()
@@ -1018,23 +1013,6 @@ func (c *LabConfig) LXCTemplateDir() string {
 	return c.LXC.TemplateDir
 }
 
-// Backward compatibility methods (deprecated)
-func (c *LabConfig) ProxmoxHost() string {
-	return c.LXC.Host
-}
-
-func (c *LabConfig) ProxmoxStorage() string {
-	return c.LXC.Storage
-}
-
-func (c *LabConfig) ProxmoxBridge() string {
-	return c.LXC.Bridge
-}
-
-func (c *LabConfig) ProxmoxTemplateDir() string {
-	return c.LXC.TemplateDir
-}
-
 func (c *LabConfig) APTCachePort() int {
 	if c.Services.APTcache.Port != nil {
 		return *c.Services.APTcache.Port
@@ -1048,4 +1026,3 @@ func (c *LabConfig) GetGateway() string {
 	}
 	return ""
 }
-

@@ -1,15 +1,15 @@
 package commands
 
 import (
+	"enva/actions"
+	"enva/libs"
+	"enva/orchestration"
+	"enva/services"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	"enva/actions"
-	"enva/libs"
-	"enva/orchestration"
-	"enva/services"
 )
 
 // DeployError is raised when deployment fails
@@ -349,7 +349,7 @@ func (d *Deploy) executeContainerActions(plan *actions.DeployPlan, containerCfg 
 	aptService := services.NewAPTService(sshService)
 	if !d.lxcService.IsConnected() {
 		if !d.lxcService.Connect() {
-			return &DeployError{Message: fmt.Sprintf("Failed to connect to Proxmox host %s", d.cfg.LXCHost())}
+			return &DeployError{Message: fmt.Sprintf("Failed to connect to LXC host %s", d.cfg.LXCHost())}
 		}
 	}
 	actionNames := containerCfg.Actions
@@ -604,7 +604,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 	var failedPorts []PortFailure
 	if !d.lxcService.IsConnected() {
 		if !d.lxcService.Connect() {
-			logger.Error("Failed to connect to Proxmox host %s", d.cfg.LXCHost())
+			logger.Error("Failed to connect to LXC host %s", d.cfg.LXCHost())
 			return failedPorts
 		}
 	}

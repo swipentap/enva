@@ -1,12 +1,12 @@
 package actions
 
 import (
-	"fmt"
-	"strings"
-	"time"
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
+	"fmt"
+	"strings"
+	"time"
 )
 
 // InstallK3sAction installs k3s
@@ -20,7 +20,7 @@ func NewInstallK3sAction(sshService *services.SSHService, aptService *services.A
 			SSHService:   sshService,
 			APTService:   aptService,
 			PCTService:   pctService,
-			ContainerID: containerID,
+			ContainerID:  containerID,
 			Cfg:          cfg,
 			ContainerCfg: containerCfg,
 		},
@@ -37,7 +37,7 @@ func (a *InstallK3sAction) Execute() bool {
 		return false
 	}
 	libs.GetLogger("install_k3s").Printf("Installing k3s...")
-	
+
 	// Check if k3s is already installed
 	k3sCheckCmd := cli.NewCommand().SetCommand("k3s").Exists()
 	checkOutput, checkExit := a.SSHService.Execute(k3sCheckCmd, nil)
@@ -59,9 +59,9 @@ func (a *InstallK3sAction) Execute() bool {
 			if isControl {
 				libs.GetLogger("install_k3s").Printf("Ensuring /dev/kmsg exists for k3s (LXC requirement)...")
 				removeCmd := "rm -f /dev/kmsg 2>/dev/null || true"
-				a.SSHService.Execute(removeCmd, nil)
+				a.SSHService.Execute(removeCmd, nil, true) // sudo=True
 				createKmsgCmd := "ln -sf /dev/console /dev/kmsg 2>&1"
-				createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil)
+				createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
 				if createExit != nil && *createExit != 0 {
 					outputLen := len(createOutput)
 					start := 0
@@ -73,12 +73,12 @@ func (a *InstallK3sAction) Execute() bool {
 				}
 				libs.GetLogger("install_k3s").Printf("/dev/kmsg symlink created successfully")
 				verifyCmd := "test -e /dev/kmsg && ls -l /dev/kmsg && echo exists || echo missing"
-				verifyOutput, _ := a.SSHService.Execute(verifyCmd, nil)
+				verifyOutput, _ := a.SSHService.Execute(verifyCmd, nil, true) // sudo=True
 				if verifyOutput != "" {
 					libs.GetLogger("install_k3s").Printf("/dev/kmsg status: %s", strings.TrimSpace(verifyOutput))
 				}
 				restartCmd := "systemctl restart k3s 2>&1"
-				restartOutput, restartExit := a.SSHService.Execute(restartCmd, nil)
+				restartOutput, restartExit := a.SSHService.Execute(restartCmd, nil, true) // sudo=True
 				if restartExit != nil && *restartExit != 0 {
 					outputLen := len(restartOutput)
 					start := 0
@@ -94,11 +94,11 @@ func (a *InstallK3sAction) Execute() bool {
 			return true
 		}
 	}
-	
+
 	// Check if curl is available
 	curlCheckOutput, curlCheckExit := a.SSHService.Execute(cli.NewCommand().SetCommand("curl").Exists(), nil)
 	hasCurl := curlCheckExit != nil && *curlCheckExit == 0 && strings.Contains(curlCheckOutput, "curl")
-	
+
 	if !hasCurl {
 		libs.GetLogger("install_k3s").Printf("curl not found, installing...")
 		curlInstallOutput, exitCode := a.APTService.Install([]string{"curl"})
@@ -108,7 +108,7 @@ func (a *InstallK3sAction) Execute() bool {
 		}
 		libs.GetLogger("install_k3s").Printf("curl installed successfully")
 	}
-	
+
 	// Determine if this is a control node
 	isControl := false
 	if a.ContainerCfg != nil && a.Cfg != nil && a.Cfg.Kubernetes != nil {
@@ -119,14 +119,14 @@ func (a *InstallK3sAction) Execute() bool {
 			}
 		}
 	}
-	
+
 	// Create /dev/kmsg device inside container (required for k3s in LXC)
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Creating /dev/kmsg device for k3s...")
 		removeCmd := "rm -f /dev/kmsg 2>/dev/null || true"
-		a.SSHService.Execute(removeCmd, nil)
-		createKmsgCmd := "ln -sf /dev/console /dev/kmsg 2>&1"
-		createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil)
+		a.SSHService.Execute(removeCmd, nil, true) // sudo=True
+		createKmsgCmd := "ln -sf /dev/console /dev/kmsg"
+		createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
 		if createExit != nil && *createExit != 0 {
 			outputLen := len(createOutput)
 			start := 0
@@ -137,7 +137,7 @@ func (a *InstallK3sAction) Execute() bool {
 			return false
 		}
 		verifyCmd := "test -L /dev/kmsg && ls -l /dev/kmsg && echo symlink_ok || echo symlink_failed"
-		verifyOutput, verifyExit := a.SSHService.Execute(verifyCmd, nil)
+		verifyOutput, verifyExit := a.SSHService.Execute(verifyCmd, nil, true) // sudo=True
 		if verifyExit != nil && *verifyExit == 0 && verifyOutput != "" && strings.Contains(verifyOutput, "symlink_ok") {
 			libs.GetLogger("install_k3s").Printf("/dev/kmsg symlink verified: %s", strings.TrimSpace(verifyOutput))
 		} else {
@@ -145,7 +145,7 @@ func (a *InstallK3sAction) Execute() bool {
 			return false
 		}
 	}
-	
+
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Installing k3s server (control node)...")
 		configDir := "/etc/rancher/k3s"
@@ -167,7 +167,7 @@ bind-address: 0.0.0.0
 advertise-address: %s
 `, controlIP, hostname, controlIP)
 		createConfigCmd := fmt.Sprintf("mkdir -p %s && cat > %s << 'EOFCONFIG'\n%sEOFCONFIG", configDir, configFile, configContent)
-		configOutput, configExit := a.SSHService.Execute(createConfigCmd, nil)
+		configOutput, configExit := a.SSHService.Execute(createConfigCmd, nil, true) // sudo=True
 		if configExit != nil && *configExit != 0 {
 			outputLen := len(configOutput)
 			start := 0
@@ -178,7 +178,7 @@ advertise-address: %s
 			return false
 		}
 		libs.GetLogger("install_k3s").Printf("k3s config file created successfully")
-		
+
 		installCmd := "curl -sfL https://get.k3s.io | sh -"
 		timeout := 300
 		installOutput, installExit := a.SSHService.Execute(installCmd, &timeout)
@@ -196,7 +196,7 @@ advertise-address: %s
 		libs.GetLogger("install_k3s").Printf("Skipping k3s agent installation for worker node (will be installed during orchestration)...")
 		return true
 	}
-	
+
 	// Verify k3s is installed
 	k3sCheckCmd2 := cli.NewCommand().SetCommand("k3s").Exists()
 	checkOutput2, checkExitCode := a.SSHService.Execute(k3sCheckCmd2, nil)
@@ -204,7 +204,7 @@ advertise-address: %s
 		libs.GetLogger("install_k3s").Printf("k3s installation failed - k3s command not found")
 		return false
 	}
-	
+
 	versionCmd := "k3s --version 2>&1"
 	versionOutput, versionExit := a.SSHService.Execute(versionCmd, nil)
 	if versionExit == nil || *versionExit != 0 || versionOutput == "" || !strings.Contains(strings.ToLower(versionOutput), "k3s") {
@@ -212,18 +212,18 @@ advertise-address: %s
 		return false
 	}
 	libs.GetLogger("install_k3s").Printf("k3s installed successfully: %s", strings.TrimSpace(versionOutput))
-	
+
 	// Setup kubectl PATH and kubeconfig for root user
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Setting up kubectl PATH and kubeconfig...")
 		symlinkCmd := "ln -sf /usr/local/bin/kubectl /usr/bin/kubectl 2>/dev/null || true"
-		a.SSHService.Execute(symlinkCmd, nil)
+		a.SSHService.Execute(symlinkCmd, nil, true) // sudo=True
 		maxWait := 60
 		waitTime := 0
 		kubeconfigReady := false
 		for waitTime < maxWait {
 			checkCmd := "test -f /etc/rancher/k3s/k3s.yaml && echo exists || echo missing"
-			checkOutput3, checkExit3 := a.SSHService.Execute(checkCmd, nil)
+			checkOutput3, checkExit3 := a.SSHService.Execute(checkCmd, nil, true) // sudo=True
 			if checkExit3 != nil && *checkExit3 == 0 && checkOutput3 != "" && strings.Contains(checkOutput3, "exists") {
 				kubeconfigReady = true
 				break
@@ -241,7 +241,7 @@ advertise-address: %s
 			controlIP = *a.ContainerCfg.IPAddress
 		}
 		fixKubeconfigCmd := fmt.Sprintf("sed -i 's|server: https://127.0.0.1:6443|server: https://%s:6443|g; s|server: https://0.0.0.0:6443|server: https://%s:6443|g' /etc/rancher/k3s/k3s.yaml && mkdir -p /root/.kube && cp /etc/rancher/k3s/k3s.yaml /root/.kube/config && chown root:root /root/.kube/config && chmod 600 /root/.kube/config", controlIP, controlIP)
-		fixOutput, fixExit := a.SSHService.Execute(fixKubeconfigCmd, nil)
+		fixOutput, fixExit := a.SSHService.Execute(fixKubeconfigCmd, nil, true) // sudo=True
 		if fixExit != nil && *fixExit != 0 {
 			outputLen := len(fixOutput)
 			start := 0
@@ -252,7 +252,7 @@ advertise-address: %s
 			return false
 		}
 		verifyCmd := "test -f /root/.kube/config && echo exists || echo missing"
-		verifyOutput2, verifyExit2 := a.SSHService.Execute(verifyCmd, nil)
+		verifyOutput2, verifyExit2 := a.SSHService.Execute(verifyCmd, nil, true) // sudo=True
 		if verifyExit2 == nil || *verifyExit2 != 0 || verifyOutput2 == "" || !strings.Contains(verifyOutput2, "exists") {
 			libs.GetLogger("install_k3s").Printf("kubeconfig was not copied to /root/.kube/config")
 			return false
@@ -261,4 +261,3 @@ advertise-address: %s
 	}
 	return true
 }
-

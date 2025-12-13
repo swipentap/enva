@@ -2,10 +2,10 @@ package services
 
 import (
 	"encoding/base64"
+	"enva/libs"
 	"fmt"
 	"strings"
 	"time"
-	"enva/libs"
 )
 
 // PCTService uses LXC service to execute PCT CLI commands
@@ -15,8 +15,8 @@ type PCTService struct {
 }
 
 const (
-	defaultShell      = "bash"
-	base64DecodeCmd   = "base64 -d"
+	defaultShell    = "bash"
+	base64DecodeCmd = "base64 -d"
 )
 
 // NewPCTService creates a new PCT service
@@ -44,7 +44,7 @@ func (p *PCTService) buildPCTExecCommand(containerID int, command string) string
 
 // Execute executes command in container via pct exec
 func (p *PCTService) Execute(containerID int, command string, timeout *int) (string, *int) {
-	libs.GetLogger("pct").Printf("Running in container %d: %s", containerID, command)
+	libs.GetLogger("pct").Debug("Running in container %d: %s", containerID, command)
 	pctCmd := p.buildPCTExecCommand(containerID, command)
 	return p.lxc.Execute(pctCmd, timeout)
 }
@@ -83,7 +83,7 @@ func (p *PCTService) SetOption(containerID int, option string, value string) (st
 	return p.lxc.Execute(cmd, nil)
 }
 
-// SetOnboot configures container autostart on Proxmox boot
+// SetOnboot configures container autostart on host boot
 func (p *PCTService) SetOnboot(containerID int, autostart bool) (string, *int) {
 	value := "1"
 	if !autostart {
@@ -233,4 +233,3 @@ func (p *PCTService) WaitForContainer(containerID int, ipAddress string, cfg *li
 func (p *PCTService) GetLXCService() libs.LXCServiceInterface {
 	return p.lxc
 }
-

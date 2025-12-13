@@ -23,37 +23,37 @@ func (s *SystemCtl) Service(name string) *SystemCtl {
 
 // Start generates systemctl start command
 func (s *SystemCtl) Start() string {
-	return fmt.Sprintf("systemctl start %s", s.serviceName)
+	return fmt.Sprintf("systemctl start %s 2>/dev/null || true", s.serviceName)
 }
 
 // Stop generates systemctl stop command
 func (s *SystemCtl) Stop() string {
-	return fmt.Sprintf("systemctl stop %s", s.serviceName)
+	return fmt.Sprintf("systemctl stop %s 2>/dev/null || true", s.serviceName)
 }
 
 // Enable generates systemctl enable command
 func (s *SystemCtl) Enable() string {
-	return fmt.Sprintf("systemctl enable %s", s.serviceName)
+	return fmt.Sprintf("systemctl enable %s 2>/dev/null || true", s.serviceName)
 }
 
 // Disable generates systemctl disable command
 func (s *SystemCtl) Disable() string {
-	return fmt.Sprintf("systemctl disable %s", s.serviceName)
+	return fmt.Sprintf("systemctl disable %s 2>/dev/null || true", s.serviceName)
 }
 
 // Restart generates systemctl restart command
 func (s *SystemCtl) Restart() string {
-	return fmt.Sprintf("systemctl restart %s", s.serviceName)
+	return fmt.Sprintf("systemctl restart %s 2>/dev/null || true", s.serviceName)
 }
 
 // Status generates systemctl status command
 func (s *SystemCtl) Status() string {
-	return fmt.Sprintf("systemctl status %s", s.serviceName)
+	return fmt.Sprintf("systemctl status %s 2>&1", s.serviceName)
 }
 
 // IsActive generates systemctl is-active command
 func (s *SystemCtl) IsActive() string {
-	return fmt.Sprintf("systemctl is-active %s", s.serviceName)
+	return fmt.Sprintf("systemctl is-active %s 2>/dev/null", s.serviceName)
 }
 
 // ParseIsActive parses output to check if service is active

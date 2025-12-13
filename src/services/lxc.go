@@ -4,23 +4,23 @@ import (
 	"enva/libs"
 )
 
-// LXCService maintains a persistent SSH connection to Proxmox host
+// LXCService maintains a persistent SSH connection to LXC host
 type LXCService struct {
-	proxmoxHost string
-	sshConfig   *libs.SSHConfig
-	sshService  *SSHService
+	lxcHost    string
+	sshConfig  *libs.SSHConfig
+	sshService *SSHService
 }
 
 // NewLXCService creates a new LXC service
-func NewLXCService(proxmoxHost string, sshConfig *libs.SSHConfig) *LXCService {
+func NewLXCService(lxcHost string, sshConfig *libs.SSHConfig) *LXCService {
 	return &LXCService{
-		proxmoxHost: proxmoxHost,
-		sshConfig:   sshConfig,
-		sshService:  NewSSHService(proxmoxHost, sshConfig),
+		lxcHost:    lxcHost,
+		sshConfig:  sshConfig,
+		sshService: NewSSHService(lxcHost, sshConfig),
 	}
 }
 
-// Connect establishes SSH connection to Proxmox host
+// Connect establishes SSH connection to LXC host
 func (l *LXCService) Connect() bool {
 	return l.sshService.Connect()
 }
@@ -39,4 +39,3 @@ func (l *LXCService) IsConnected() bool {
 func (l *LXCService) Execute(command string, timeout *int) (string, *int) {
 	return l.sshService.Execute(command, timeout)
 }
-
