@@ -18,3 +18,4 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 	cd src && go test ./...
+
