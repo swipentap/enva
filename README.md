@@ -1,4 +1,4 @@
-# EnvA (Go Implementation)
+# EnvA 
 
 This repository contains the Go implementation of **EnvA**, a CLI tool for managing LXC containers, Docker-based environments, and related infrastructure automation.
 
