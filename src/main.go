@@ -214,6 +214,7 @@ func runRedeploy(cmd *cobra.Command, args []string) error {
 	logger.Info("\n[1/2] Running cleanup...")
 
 	lxcService := services.NewLXCService(cfg.LXCHost(), &cfg.SSH)
+	defer lxcService.Disconnect()
 	pctService := services.NewPCTService(lxcService)
 	cleanupCmd := commands.NewCleanup(cfg, lxcService, pctService)
 	// Python doesn't catch errors between cleanup and deploy - if cleanup fails, deploy still runs

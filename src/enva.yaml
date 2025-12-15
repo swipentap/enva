@@ -13,6 +13,13 @@ environments:
       bridge: "vmbr0"
       template_dir: "/var/lib/vz/template/cache"
       gateway_octet: 253  # Last octet of gateway IP
+    services:
+      github_runner:
+        token: "ghp_***********************************"
+        organization: "swipentap"
+        replicas: 3
+        label: "k3s-prod"
+        name_prefix: "k3s-prod-runner"
   test:
     id-base: 3000
     network: "10.11.3.0/24"
@@ -24,6 +31,13 @@ environments:
       bridge: "vmbr0"
       template_dir: "/var/lib/vz/template/cache"
       gateway_octet: 253  # Last octet of gateway IP
+    services:
+      github_runner:
+        token: "ghp_***********************************"
+        organization: "swipentap"
+        replicas: 3
+        label: "k3s-test"
+        name_prefix: "k3s-test-runner"
   dev:
     id-base: 4000
     network: "10.11.4.0/24"
@@ -35,6 +49,13 @@ environments:
       bridge: "vmbr0"
       template_dir: "/var/lib/vz/template/cache"
       gateway_octet: 253  # Last octet of gateway IP
+    services:
+      github_runner:
+        token: "ghp_***********************************"
+        organization: "swipentap"
+        replicas: 3
+        label: "k3s-dev"
+        name_prefix: "k3s-dev-runner"
 
 apt-cache-ct: apt-cache 
 
@@ -291,6 +312,7 @@ kubernetes:
     - id: 14
   actions:
     - install cockroachdb
+    - install github runner
 
 # Script timeouts (in seconds)
 timeouts:

@@ -78,14 +78,26 @@ type ServiceConfig struct {
 	GRPCPort  *int    `yaml:"grpc_port,omitempty"`
 }
 
+// GitHubRunnerConfig represents GitHub Actions Runner configuration
+type GitHubRunnerConfig struct {
+	Token        *string `yaml:"token,omitempty"`
+	Organization *string `yaml:"organization,omitempty"`
+	Repository   *string `yaml:"repository,omitempty"`
+	Replicas     *int    `yaml:"replicas,omitempty"`
+	Label        *string `yaml:"label,omitempty"`
+	NamePrefix   *string `yaml:"name_prefix,omitempty"`
+	Namespace    *string `yaml:"namespace,omitempty"`
+}
+
 // ServicesConfig represents all services configuration
 type ServicesConfig struct {
-	APTcache    ServiceConfig  `yaml:"apt_cache"`
-	PostgreSQL  *ServiceConfig `yaml:"postgresql,omitempty"`
-	HAProxy     *ServiceConfig `yaml:"haproxy,omitempty"`
-	Rancher     *ServiceConfig `yaml:"rancher,omitempty"`
-	Longhorn    *ServiceConfig `yaml:"longhorn,omitempty"`
-	CockroachDB *ServiceConfig `yaml:"cockroachdb,omitempty"`
+	APTcache     ServiceConfig       `yaml:"apt_cache"`
+	PostgreSQL   *ServiceConfig      `yaml:"postgresql,omitempty"`
+	HAProxy      *ServiceConfig      `yaml:"haproxy,omitempty"`
+	Rancher      *ServiceConfig      `yaml:"rancher,omitempty"`
+	Longhorn     *ServiceConfig      `yaml:"longhorn,omitempty"`
+	CockroachDB  *ServiceConfig      `yaml:"cockroachdb,omitempty"`
+	GitHubRunner *GitHubRunnerConfig `yaml:"github_runner,omitempty"`
 }
 
 // UserConfig represents individual user configuration
@@ -488,10 +500,35 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		GatewayOctet: gatewayOctet,
 	}
 
-	// Parse services
-	servicesData, ok := data["services"].(map[string]interface{})
+	// Parse services - start with top-level, then merge environment-specific overrides
+	var servicesData map[string]interface{}
+	var ok bool
+	servicesData, ok = data["services"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("services section not found")
+	}
+	// Merge environment-specific services (they override top-level)
+	if envData != nil {
+		if envServices, ok := envData["services"].(map[string]interface{}); ok {
+			// Merge env-specific services into top-level (env takes precedence)
+			for k, v := range envServices {
+				if envServiceMap, ok := v.(map[string]interface{}); ok {
+					if topLevelServiceMap, exists := servicesData[k].(map[string]interface{}); exists {
+						// Merge the service maps (env overrides top-level)
+						for ek, ev := range envServiceMap {
+							topLevelServiceMap[ek] = ev
+						}
+						servicesData[k] = topLevelServiceMap
+					} else {
+						// New service in env, add it
+						servicesData[k] = envServiceMap
+					}
+				} else {
+					// Simple value override
+					servicesData[k] = v
+				}
+			}
+		}
 	}
 
 	aptCacheData, _ := servicesData["apt_cache"].(map[string]interface{})
@@ -563,6 +600,41 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		}
 		services.Longhorn = &ServiceConfig{
 			Port: port,
+		}
+	}
+
+	if githubRunnerData, ok := servicesData["github_runner"].(map[string]interface{}); ok {
+		var token, organization, repository, label, namePrefix, namespace *string
+		var replicas *int
+		if t, ok := githubRunnerData["token"].(string); ok {
+			token = &t
+		}
+		if org, ok := githubRunnerData["organization"].(string); ok {
+			organization = &org
+		}
+		if repo, ok := githubRunnerData["repository"].(string); ok {
+			repository = &repo
+		}
+		if r, ok := githubRunnerData["replicas"].(int); ok {
+			replicas = &r
+		}
+		if l, ok := githubRunnerData["label"].(string); ok {
+			label = &l
+		}
+		if np, ok := githubRunnerData["name_prefix"].(string); ok {
+			namePrefix = &np
+		}
+		if ns, ok := githubRunnerData["namespace"].(string); ok {
+			namespace = &ns
+		}
+		services.GitHubRunner = &GitHubRunnerConfig{
+			Token:        token,
+			Organization: organization,
+			Repository:   repository,
+			Replicas:     replicas,
+			Label:        label,
+			NamePrefix:   namePrefix,
+			Namespace:    namespace,
 		}
 	}
 

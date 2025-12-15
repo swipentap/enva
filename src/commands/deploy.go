@@ -489,6 +489,12 @@ func (d *Deploy) logDeployPlan(plan *actions.DeployPlan) {
 		steps = append(steps, stepInfo{stepNum, "glusterfs: setup glusterfs"})
 		stepNum++
 	}
+	if d.cfg.KubernetesActions != nil && len(d.cfg.KubernetesActions) > 0 {
+		for _, actionName := range d.cfg.KubernetesActions {
+			steps = append(steps, stepInfo{stepNum, fmt.Sprintf("kubernetes: %s", actionName)})
+			stepNum++
+		}
+	}
 	logger.Info("")
 	endStepDisplay := plan.TotalSteps
 	if plan.EndStep != nil {

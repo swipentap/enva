@@ -45,8 +45,8 @@ func init() {
 	RegisterAction("k3s installation", NewInstallK3sAction)
 	RegisterAction("glusterfs server installation", NewInstallGlusterfsAction)
 	RegisterAction("install cockroachdb", NewInstallCockroachdbAction)
+	RegisterAction("install github runner", NewInstallGithubRunnerAction)
 }
 
 // ActionFactory type alias for clarity
 type ActionFactory func(sshService *services.SSHService, aptService *services.APTService, pctService *services.PCTService, containerID *string, cfg *libs.LabConfig, containerCfg *libs.ContainerConfig) Action
-

@@ -16,3 +16,4 @@ go.work
 src/enva
 src/enva.exe
 src/vendor/
+enva.yaml
