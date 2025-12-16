@@ -5,6 +5,7 @@ import (
 	"enva/orchestration"
 	"enva/services"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -96,6 +97,11 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	namespace := "actions-runner-system"
 	if runnerCfg.Namespace != nil {
 		namespace = *runnerCfg.Namespace
+	}
+
+	runnerGroup := ""
+	if runnerCfg.Group != nil {
+		runnerGroup = *runnerCfg.Group
 	}
 
 	lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
@@ -398,6 +404,13 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	// Create RunnerDeployment
 	libs.GetLogger("install_github_runner").Printf("Creating RunnerDeployment...")
 	runnerDeploymentName := fmt.Sprintf("%s-deployment", runnerNamePrefix)
+	
+	// Build the manifest with optional group field
+	groupField := ""
+	if runnerGroup != "" {
+		groupField = fmt.Sprintf("      group: %s\n", runnerGroup)
+	}
+	
 	runnerDeploymentManifest := fmt.Sprintf(`apiVersion: actions.summerwind.dev/v1alpha1
 kind: RunnerDeployment
 metadata:
@@ -408,22 +421,19 @@ spec:
   template:
     spec:
       organization: %s
-      labels:
+%s      labels:
         - %s
       dockerdWithinRunnerContainer: true
       dockerEnabled: true
       image: summerwind/actions-runner-dind:latest
-      env:
-        - name: RUNNER_NAME
-          value: %s
       resources:
         requests:
           cpu: "250m"
-          memory: "512Mi"
+          memory: "256Mi"
         limits:
-          cpu: "2"
-          memory: "2Gi"
-`, runnerDeploymentName, namespace, replicas, organization, runnerLabel, runnerNamePrefix)
+          cpu: "1"
+          memory: "768Mi"
+`, runnerDeploymentName, namespace, replicas, organization, groupField, runnerLabel)
 	// Write manifest to temporary file to avoid shell escaping issues with heredoc
 	applyDeploymentCmd := fmt.Sprintf(`cat > /tmp/runner-deployment.yaml << 'DEPLOYMENT_EOF'
 %s
@@ -476,6 +486,72 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 		}
 		libs.GetLogger("install_github_runner").Printf("Failed: GitHub runners did not become ready within timeout")
 		return false
+	}
+
+	// Verify and fix runner pod count to match desired replicas
+	libs.GetLogger("install_github_runner").Printf("Verifying runner pod count matches desired replicas...")
+	timeout = 30
+	
+	// Check if we have excess pods
+	totalPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers 2>&1 | wc -l", namespace, runnerDeploymentName)
+	totalPodsOutput, _ := pctService.Execute(controlID, totalPodsCmd, nil)
+	totalPodsStr := strings.TrimSpace(totalPodsOutput)
+	totalPods := 0
+	if count, err := strconv.Atoi(totalPodsStr); err == nil {
+		totalPods = count
+	}
+	
+	if totalPods > replicas {
+		libs.GetLogger("install_github_runner").Printf("Found %d runner pods, but desired is %d. Fixing pod count...", totalPods, replicas)
+		
+		// Ensure RunnerDeployment spec has correct replicas
+		patchCmd := fmt.Sprintf("kubectl patch runnerdeployment %s -n %s --type=merge -p '{\"spec\":{\"replicas\":%d}}' 2>&1", runnerDeploymentName, namespace, replicas)
+		patchOutput, patchExit := pctService.Execute(controlID, patchCmd, &timeout)
+		if patchExit != nil && *patchExit != 0 {
+			libs.GetLogger("install_github_runner").Printf("Warning: Failed to patch RunnerDeployment: %s", patchOutput)
+		} else {
+			libs.GetLogger("install_github_runner").Printf("RunnerDeployment patched to %d replicas", replicas)
+		}
+		
+		// Wait a bit for controller to reconcile
+		time.Sleep(10 * time.Second)
+		
+		// Get list of pods and delete excess ones (keep the newest ones)
+		getPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers --sort-by=.metadata.creationTimestamp 2>&1", namespace, runnerDeploymentName)
+		podsListOutput, _ := pctService.Execute(controlID, getPodsCmd, nil)
+		podLines := strings.Split(strings.TrimSpace(podsListOutput), "\n")
+		
+		if len(podLines) > replicas {
+			// Delete the oldest pods (first in the sorted list)
+			podsToDelete := podLines[:len(podLines)-replicas]
+			for _, podLine := range podsToDelete {
+				if podName := strings.Fields(podLine)[0]; podName != "" {
+					deleteCmd := fmt.Sprintf("kubectl delete pod %s -n %s 2>&1", podName, namespace)
+					deleteOutput, _ := pctService.Execute(controlID, deleteCmd, &timeout)
+					if deleteOutput != "" && !strings.Contains(deleteOutput, "NotFound") {
+						libs.GetLogger("install_github_runner").Printf("Deleted excess pod: %s", podName)
+					}
+				}
+			}
+			
+			// Wait for controller to stabilize
+			libs.GetLogger("install_github_runner").Printf("Waiting for pod count to stabilize...")
+			time.Sleep(15 * time.Second)
+			
+			// Verify final count
+			finalCountCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers 2>&1 | wc -l", namespace, runnerDeploymentName)
+			finalCountOutput, _ := pctService.Execute(controlID, finalCountCmd, nil)
+			finalCountStr := strings.TrimSpace(finalCountOutput)
+			if finalCount, err := strconv.Atoi(finalCountStr); err == nil {
+				if finalCount == replicas {
+					libs.GetLogger("install_github_runner").Printf("Pod count fixed: %d pods running (matches desired %d)", finalCount, replicas)
+				} else {
+					libs.GetLogger("install_github_runner").Printf("Warning: Pod count is %d, expected %d. Controller may still be reconciling.", finalCount, replicas)
+				}
+			}
+		}
+	} else if totalPods == replicas {
+		libs.GetLogger("install_github_runner").Printf("Pod count is correct: %d pods running", totalPods)
 	}
 
 	libs.GetLogger("install_github_runner").Printf("GitHub Actions Runner Controller installation completed")

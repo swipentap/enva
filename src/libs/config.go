@@ -87,6 +87,7 @@ type GitHubRunnerConfig struct {
 	Label        *string `yaml:"label,omitempty"`
 	NamePrefix   *string `yaml:"name_prefix,omitempty"`
 	Namespace    *string `yaml:"namespace,omitempty"`
+	Group        *string `yaml:"group,omitempty"`
 }
 
 // ServicesConfig represents all services configuration
@@ -604,7 +605,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 	}
 
 	if githubRunnerData, ok := servicesData["github_runner"].(map[string]interface{}); ok {
-		var token, organization, repository, label, namePrefix, namespace *string
+		var token, organization, repository, label, namePrefix, namespace, group *string
 		var replicas *int
 		if t, ok := githubRunnerData["token"].(string); ok {
 			token = &t
@@ -627,6 +628,9 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if ns, ok := githubRunnerData["namespace"].(string); ok {
 			namespace = &ns
 		}
+		if g, ok := githubRunnerData["group"].(string); ok {
+			group = &g
+		}
 		services.GitHubRunner = &GitHubRunnerConfig{
 			Token:        token,
 			Organization: organization,
@@ -635,6 +639,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 			Label:        label,
 			NamePrefix:   namePrefix,
 			Namespace:    namespace,
+			Group:        group,
 		}
 	}
 

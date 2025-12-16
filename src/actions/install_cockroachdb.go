@@ -182,10 +182,10 @@ spec:
   resources:
     requests:
       cpu: 500m
-      memory: 2Gi
+      memory: 512Mi
     limits:
       cpu: 2
-      memory: 8Gi
+      memory: 2Gi
   tlsEnabled: true
   image:
     name: cockroachdb/cockroach:%s
