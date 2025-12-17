@@ -35,7 +35,7 @@ func (s *Status) Run() error {
 	logger.Info("Lab Status")
 	logger.Info("==================================================")
 	logger.Info("Containers:")
-	listCmd := cli.NewPCT().Status()
+	listCmd := cli.NewPCT().List()
 	result, _ := s.lxcService.Execute(listCmd, nil)
 	if result != "" {
 		logger.Info(result)

@@ -46,9 +46,11 @@ func (s *SystemCtl) Restart() string {
 	return fmt.Sprintf("systemctl restart %s 2>/dev/null || true", s.serviceName)
 }
 
-// Status generates systemctl status command
+// Status generates systemctl status command (non-interactive, no pager)
 func (s *SystemCtl) Status() string {
-	return fmt.Sprintf("systemctl status %s 2>&1", s.serviceName)
+	// Disable systemd pager to avoid hanging in interactive mode over SSH/PTTY
+	// and force --no-pager so output returns immediately.
+	return fmt.Sprintf("SYSTEMD_PAGER= systemctl status %s --no-pager 2>&1", s.serviceName)
 }
 
 // IsActive generates systemctl is-active command
@@ -60,4 +62,3 @@ func (s *SystemCtl) IsActive() string {
 func ParseIsActive(output string) bool {
 	return strings.TrimSpace(output) == "active"
 }
-

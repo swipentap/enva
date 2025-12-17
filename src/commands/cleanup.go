@@ -90,7 +90,7 @@ func (c *Cleanup) destroyContainers() error {
 }
 
 func (c *Cleanup) listContainerIDs() []string {
-	listCmd := cli.NewPCT().Status()
+	listCmd := cli.NewPCT().List()
 	result, _ := c.lxcService.Execute(listCmd, nil)
 	var containerIDs []string
 	if result != "" {
@@ -108,7 +108,7 @@ func (c *Cleanup) listContainerIDs() []string {
 func (c *Cleanup) verifyContainersRemoved() error {
 	logger := libs.GetLogger("cleanup")
 	logger.Info("Verifying all containers are destroyed...")
-	remainingResult, _ := c.lxcService.Execute(cli.NewPCT().Status(), nil)
+	remainingResult, _ := c.lxcService.Execute(cli.NewPCT().List(), nil)
 	var remainingIDs []string
 	if remainingResult != "" {
 		remainingLines := strings.Split(strings.TrimSpace(remainingResult), "\n")

@@ -66,6 +66,11 @@ func (p *PCT) Destroy() string {
 	return fmt.Sprintf("pct destroy %s%s", p.containerID, force)
 }
 
+// List generates pct list command
+func (p *PCT) List() string {
+	return "pct list"
+}
+
 // Status generates pct status command
 func (p *PCT) Status() string {
 	return fmt.Sprintf("pct status %s", p.containerID)
@@ -92,4 +97,3 @@ func boolToInt(b bool) int {
 	}
 	return 0
 }
-

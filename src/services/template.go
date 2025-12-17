@@ -36,6 +36,17 @@ func (t *TemplateService) GetBaseTemplate(cfg *libs.LabConfig) *string {
 	templateToDownload := templates[len(templates)-1]
 	libs.GetLogger("template").Printf("Base template not found. Downloading %s...", templateToDownload)
 
+	// Update Proxmox repository cache before downloading
+	libs.GetLogger("template").Printf("Updating Proxmox repository cache...")
+	updateCmd := "pveam update"
+	updateTimeout := 60
+	updateOutput, updateExitCode := t.lxc.Execute(updateCmd, &updateTimeout)
+	if updateExitCode != nil && *updateExitCode != 0 {
+		libs.GetLogger("template").Printf("Warning: pveam update failed (exit code: %d): %s", *updateExitCode, updateOutput)
+	} else {
+		libs.GetLogger("template").Printf("Repository cache updated successfully")
+	}
+
 	// Run pveam download
 	downloadCmd := fmt.Sprintf("pveam download local %s", templateToDownload)
 	libs.GetLogger("template").Debug("Running: %s", downloadCmd)
