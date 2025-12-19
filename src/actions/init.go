@@ -27,6 +27,7 @@ func init() {
 	RegisterAction("sins dns installation", NewInstallSinsDnsAction)
 	RegisterAction("sins dns service configuration", NewConfigureSinsServiceAction)
 	RegisterAction("sins dns service enablement", NewEnableSinsServiceAction)
+	RegisterAction("configure dns records", NewConfigureDnsRecordsAction)
 	RegisterAction("disable systemd resolved", NewDisableSystemdResolvedAction)
 	RegisterAction("docker installation", NewInstallDockerAction)
 	RegisterAction("docker service start", NewStartDockerServiceAction)

@@ -76,6 +76,7 @@ type ServiceConfig struct {
 	SQLPort   *int    `yaml:"sql_port,omitempty"`
 	HTTPPort2 *int    `yaml:"http_port,omitempty"` // For cockroachdb
 	GRPCPort  *int    `yaml:"grpc_port,omitempty"`
+	Name      *string `yaml:"name,omitempty"`
 }
 
 // GitHubRunnerConfig represents GitHub Actions Runner configuration
@@ -230,6 +231,7 @@ type LabConfig struct {
 	KubernetesActions []string
 	Backup            *BackupConfig
 	APTCacheCT        string
+	Domain            *string // Environment domain (e.g., dev.net, test.net, prod.net)
 	// Computed fields
 	NetworkBase       *string
 	Gateway           *string
@@ -534,9 +536,13 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 
 	aptCacheData, _ := servicesData["apt_cache"].(map[string]interface{})
 	aptCachePort, _ := aptCacheData["port"].(int)
+	var aptCacheName *string
+	if name, ok := aptCacheData["name"].(string); ok {
+		aptCacheName = &name
+	}
 
 	services := ServicesConfig{
-		APTcache: ServiceConfig{Port: &aptCachePort},
+		APTcache: ServiceConfig{Port: &aptCachePort, Name: aptCacheName},
 	}
 
 	if pgData, ok := servicesData["postgresql"].(map[string]interface{}); ok {
@@ -553,11 +559,16 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if d, ok := pgData["database"].(string); ok {
 			database = d
 		}
+		var pgName *string
+		if name, ok := pgData["name"].(string); ok {
+			pgName = &name
+		}
 		services.PostgreSQL = &ServiceConfig{
 			Port:     &port,
 			Username: &username,
 			Password: &password,
 			Database: &database,
+			Name:     pgName,
 		}
 	}
 
@@ -572,10 +583,15 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if sp, ok := haproxyData["stats_port"].(int); ok {
 			statsPort = &sp
 		}
+		var haproxyName *string
+		if name, ok := haproxyData["name"].(string); ok {
+			haproxyName = &name
+		}
 		services.HAProxy = &ServiceConfig{
 			HTTPPort:  httpPort,
 			HTTPSPort: httpsPort,
 			StatsPort: statsPort,
+			Name:      haproxyName,
 		}
 	}
 
@@ -588,9 +604,14 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if img, ok := rancherData["image"].(string); ok {
 			image = &img
 		}
+		var rancherName *string
+		if name, ok := rancherData["name"].(string); ok {
+			rancherName = &name
+		}
 		services.Rancher = &ServiceConfig{
 			Port:  port,
 			Image: image,
+			Name:  rancherName,
 		}
 	}
 
@@ -669,8 +690,13 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		if n, ok := cockroachData["nodes"].(int); ok {
 			nodes = &n
 		}
+		var cockroachName *string
+		if name, ok := cockroachData["name"].(string); ok {
+			cockroachName = &name
+		}
 
 		services.CockroachDB = &ServiceConfig{
+			Name:      cockroachName,
 			SQLPort:   sqlPort,
 			HTTPPort2: httpPort,
 			GRPCPort:  grpcPort,
@@ -973,6 +999,14 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		aptCacheCT = act
 	}
 
+	// Parse domain from environment
+	var domain *string
+	if envData != nil {
+		if d, ok := envData["domain"].(string); ok {
+			domain = &d
+		}
+	}
+
 	config := &LabConfig{
 		Network:           network,
 		LXC:               lxc,
@@ -993,6 +1027,7 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		KubernetesActions: kubernetesActions,
 		Backup:            backup,
 		APTCacheCT:        aptCacheCT,
+		Domain:            domain,
 	}
 
 	config.ComputeDerivedFields()
