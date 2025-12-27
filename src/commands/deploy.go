@@ -234,7 +234,13 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 			logger.Info("==================================================")
 			logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: kubernetes - setup kubernetes", overallPct, plan.CurrentActionStep, plan.TotalSteps)
 			logger.Info("==================================================")
-			setupKubernetesAction := actions.NewSetupKubernetesAction(nil, nil, nil, nil, d.cfg, nil)
+			if !d.lxcService.IsConnected() {
+				if !d.lxcService.Connect() {
+					return &DeployError{Message: fmt.Sprintf("Failed to connect to LXC host %s", d.cfg.LXCHost())}
+				}
+			}
+			pctService := services.NewPCTService(d.lxcService)
+			setupKubernetesAction := actions.NewSetupKubernetesAction(nil, nil, pctService, nil, d.cfg, nil)
 			if !setupKubernetesAction.Execute() {
 				return &DeployError{Message: "Failed to execute setup kubernetes action"}
 			}
@@ -269,6 +275,39 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 		}
 	}
 	if d.cfg.Kubernetes != nil && d.cfg.KubernetesActions != nil && len(d.cfg.KubernetesActions) > 0 {
+		// Get control node info for SSH service
+		var sshService *services.SSHService
+		var aptService *services.APTService
+		if len(d.cfg.Kubernetes.Control) > 0 {
+			controlID := d.cfg.Kubernetes.Control[0]
+			var controlNode *libs.ContainerConfig
+			for i := range d.cfg.Containers {
+				if d.cfg.Containers[i].ID == controlID {
+					controlNode = &d.cfg.Containers[i]
+					break
+				}
+			}
+			if controlNode != nil && controlNode.IPAddress != nil {
+				defaultUser := d.cfg.Users.DefaultUser()
+				containerSSHConfig := libs.SSHConfig{
+					ConnectTimeout:     d.cfg.SSH.ConnectTimeout,
+					BatchMode:          d.cfg.SSH.BatchMode,
+					DefaultExecTimeout: d.cfg.SSH.DefaultExecTimeout,
+					ReadBufferSize:     d.cfg.SSH.ReadBufferSize,
+					PollInterval:       d.cfg.SSH.PollInterval,
+					DefaultUsername:    defaultUser,
+					LookForKeys:        d.cfg.SSH.LookForKeys,
+					AllowAgent:         d.cfg.SSH.AllowAgent,
+					Verbose:            d.cfg.SSH.Verbose,
+				}
+				sshService = services.NewSSHService(fmt.Sprintf("%s@%s", defaultUser, *controlNode.IPAddress), &containerSSHConfig)
+				if sshService.Connect() {
+					aptService = services.NewAPTService(sshService)
+				} else {
+					sshService = nil
+				}
+			}
+		}
 		for _, actionName := range d.cfg.KubernetesActions {
 			plan.CurrentActionStep++
 			if plan.CurrentActionStep < plan.StartStep {
@@ -283,13 +322,22 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 			logger.Info("==================================================")
 			logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: Kubernetes action - %s", overallPct, plan.CurrentActionStep, plan.TotalSteps, actionName)
 			logger.Info("==================================================")
-			action, err := actions.GetAction(actionName, nil, nil, nil, nil, d.cfg, nil)
+			action, err := actions.GetAction(actionName, sshService, aptService, d.pctService, nil, d.cfg, nil)
 			if err != nil {
+				if sshService != nil {
+					sshService.Disconnect()
+				}
 				return &DeployError{Message: fmt.Sprintf("Kubernetes action '%s' not found: %v", actionName, err)}
 			}
 			if !action.Execute() {
+				if sshService != nil {
+					sshService.Disconnect()
+				}
 				return &DeployError{Message: fmt.Sprintf("Kubernetes action '%s' failed", actionName)}
 			}
+		}
+		if sshService != nil {
+			sshService.Disconnect()
 		}
 	}
 	failedPorts := d.checkServicePorts()

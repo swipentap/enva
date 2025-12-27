@@ -213,6 +213,41 @@ advertise-address: %s
 	}
 	libs.GetLogger("install_k3s").Printf("k3s installed successfully: %s", strings.TrimSpace(versionOutput))
 
+	// Fix systemd service files to ensure /dev/kmsg exists before k3s starts (persistent fix for LXC)
+	libs.GetLogger("install_k3s").Printf("Configuring systemd service to ensure /dev/kmsg exists on startup...")
+	serviceName := "k3s-agent"
+	if isControl {
+		serviceName = "k3s"
+	}
+	serviceFile := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
+
+	// Read current service file
+	readServiceCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
+	serviceContent, _ := a.SSHService.Execute(readServiceCmd, nil, true) // sudo=True
+
+	// Check if ExecStartPre for /dev/kmsg already exists
+	if !strings.Contains(serviceContent, "/dev/kmsg") {
+		// Add ExecStartPre to create /dev/kmsg before other ExecStartPre commands
+		// Insert before the first ExecStartPre line (which is usually modprobe br_netfilter)
+		fixServiceCmd := fmt.Sprintf(`sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg \&\& ln -sf /dev/console /dev/kmsg"' %s 2>&1`, serviceFile)
+		fixOutput, fixExit := a.SSHService.Execute(fixServiceCmd, nil, true) // sudo=True
+		if fixExit != nil && *fixExit == 0 {
+			libs.GetLogger("install_k3s").Printf("✓ Added /dev/kmsg fix to %s.service", serviceName)
+			// Reload systemd to pick up changes
+			reloadCmd := "systemctl daemon-reload 2>&1"
+			reloadOutput, reloadExit := a.SSHService.Execute(reloadCmd, nil, true) // sudo=True
+			if reloadExit != nil && *reloadExit == 0 {
+				libs.GetLogger("install_k3s").Printf("✓ Systemd daemon reloaded")
+			} else {
+				libs.GetLogger("install_k3s").Printf("⚠ Failed to reload systemd: %s", reloadOutput)
+			}
+		} else {
+			libs.GetLogger("install_k3s").Printf("⚠ Failed to modify %s.service: %s", serviceName, fixOutput)
+		}
+	} else {
+		libs.GetLogger("install_k3s").Printf("✓ %s.service already has /dev/kmsg fix", serviceName)
+	}
+
 	// Setup kubectl PATH and kubeconfig for root user
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Setting up kubectl PATH and kubeconfig...")
@@ -259,5 +294,25 @@ advertise-address: %s
 		}
 		libs.GetLogger("install_k3s").Printf("kubeconfig setup completed")
 	}
+
+	// Verify /dev/kmsg exists (especially important for worker nodes)
+	if !isControl {
+		libs.GetLogger("install_k3s").Printf("Verifying /dev/kmsg exists on worker node...")
+		verifyKmsgCmd := "test -e /dev/kmsg && echo exists || echo missing"
+		verifyKmsgOutput, verifyKmsgExit := a.SSHService.Execute(verifyKmsgCmd, nil, true) // sudo=True
+		if verifyKmsgExit == nil || *verifyKmsgExit != 0 || !strings.Contains(verifyKmsgOutput, "exists") {
+			libs.GetLogger("install_k3s").Printf("Creating /dev/kmsg symlink on worker node...")
+			createKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg 2>&1"
+			createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
+			if createExit != nil && *createExit == 0 {
+				libs.GetLogger("install_k3s").Printf("✓ /dev/kmsg created on worker node")
+			} else {
+				libs.GetLogger("install_k3s").Printf("⚠ Failed to create /dev/kmsg on worker node: %s", createOutput)
+			}
+		} else {
+			libs.GetLogger("install_k3s").Printf("✓ /dev/kmsg exists on worker node")
+		}
+	}
+
 	return true
 }

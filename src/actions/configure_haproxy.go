@@ -4,8 +4,10 @@ import (
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
+	"enva/verification"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ConfigureHaproxyAction configures HAProxy
@@ -209,6 +211,43 @@ func (a *ConfigureHaproxyAction) Execute() bool {
 %s`, backendName, strings.Join(backendServers, "\n")))
 			}
 		}
+
+		// certa service (runs on k3s worker nodes via NodePort)
+		if a.Cfg.Services.CertA != nil && a.Cfg.Services.CertA.Name != nil && *a.Cfg.Services.CertA.Name != "" {
+			// Get all worker nodes
+			workerNodes := []*libs.ContainerConfig{}
+			for i := range a.Cfg.Containers {
+				ct := &a.Cfg.Containers[i]
+				if ct.Name == "k3s-worker-1" || ct.Name == "k3s-worker-2" || ct.Name == "k3s-worker-3" {
+					if ct.IPAddress != nil {
+						workerNodes = append(workerNodes, ct)
+					}
+				}
+			}
+			if len(workerNodes) > 0 {
+				port := 30081
+				if a.Cfg.Services.CertA.Port != nil {
+					port = *a.Cfg.Services.CertA.Port
+				}
+				serviceName := *a.Cfg.Services.CertA.Name
+				fqdn := fmt.Sprintf("%s.%s", serviceName, domain)
+				backendName := fmt.Sprintf("backend_%s", serviceName)
+				// CertA uses HTTP mode - add ACLs for HTTP and HTTPS
+				aclName := fmt.Sprintf("acl_%s", serviceName)
+				httpACLs = append(httpACLs, fmt.Sprintf("    acl %s hdr(host) -i %s", aclName, fqdn))
+				httpRules = append(httpRules, fmt.Sprintf("    use_backend %s if %s", backendName, aclName))
+				httpsACLs = append(httpsACLs, fmt.Sprintf("    acl %s hdr(host) -i %s", aclName, fqdn))
+				httpsRules = append(httpsRules, fmt.Sprintf("    use_backend %s if %s", backendName, aclName))
+				// Add all worker nodes as backend servers with round-robin balancing
+				backendServers := []string{}
+				for i, worker := range workerNodes {
+					backendServers = append(backendServers, fmt.Sprintf("    server %s-%d %s:%d check", serviceName, i+1, *worker.IPAddress, port))
+				}
+				backends = append(backends, fmt.Sprintf(`backend %s
+    balance roundrobin
+%s`, backendName, strings.Join(backendServers, "\n")))
+			}
+		}
 	}
 
 	// Build unified HTTP and HTTPS frontends with ACLs
@@ -307,6 +346,24 @@ listen stats
 			}
 		}
 		return false
+	}
+
+	// Reload HAProxy to apply new configuration
+	reloadCmd := "systemctl reload haproxy 2>&1 || systemctl restart haproxy 2>&1"
+	reloadOutput, reloadExit := a.SSHService.Execute(reloadCmd, nil, true) // sudo=True
+	if reloadExit != nil && *reloadExit != 0 {
+		libs.GetLogger("configure_haproxy").Warning("Failed to reload HAProxy: %s", reloadOutput)
+		// Don't fail, HAProxy might already be running with the config
+	}
+
+	// Verify HAProxy backends after configuration
+	if a.PCTService != nil {
+		libs.GetLogger("configure_haproxy").Printf("Verifying HAProxy backends...")
+		time.Sleep(5 * time.Second) // Give HAProxy time to start backends
+		if !verification.VerifyHAProxyBackends(a.Cfg, a.PCTService) {
+			libs.GetLogger("configure_haproxy").Printf("⚠ HAProxy backend verification found issues, but configuration completed")
+			// Don't fail deployment, just warn
+		}
 	}
 	return true
 }

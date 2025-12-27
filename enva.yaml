@@ -7,6 +7,7 @@ environments:
     network: "10.11.2.0/24"
     postgres_host: "10.11.2.18"
     dns_server: "10.11.2.5"
+    domain: "prod.net"
     lxc:
       host: "root@10.11.2.4"
       storage: "sdb"
@@ -15,16 +16,29 @@ environments:
       gateway_octet: 253  # Last octet of gateway IP
     services:
       github_runner:
-        token: "ghp_*******************************"
+        # token: set via ENVA_GITHUB_TOKEN environment variable
         organization: "swipentap"
         replicas: 3
         label: "k3s-prod"
         name_prefix: "k3s-prod-runner"
+        group: "k3s-prod"
+      certa:
+        image: "judyandiealvarez/certa:latest"
+        port: 30081
+        namespace: "certa"
+        replicas: 1
+        name: "certa"
+        database_host: "10.11.2.18"
+        database_port: 5432
+        database_name: "certa"
+        database_user: "postgres"
+        database_password: "postgres"
   test:
     id-base: 3000
     network: "10.11.3.0/24"
     postgres_host: "10.11.3.18"
     dns_server: "10.11.3.5"
+    domain: "test.net"
     lxc:
       host: "root@10.11.3.4"
       storage: "sdb"
@@ -33,16 +47,18 @@ environments:
       gateway_octet: 253  # Last octet of gateway IP
     services:
       github_runner:
-        token: "ghp_*******************************"
+        # token: set via ENVA_GITHUB_TOKEN environment variable
         organization: "swipentap"
         replicas: 3
         label: "k3s-test"
         name_prefix: "k3s-test-runner"
+        group: "k3s-test"
   dev:
     id-base: 4000
     network: "10.11.4.0/24"
     postgres_host: "10.11.4.18"
     dns_server: "10.11.4.5"
+    domain: "dev.net"
     lxc:
       host: "root@10.11.4.4"
       storage: "sdb"
@@ -51,11 +67,12 @@ environments:
       gateway_octet: 253  # Last octet of gateway IP
     services:
       github_runner:
-        token: "ghp_*******************************"
+        # token: set via ENVA_GITHUB_TOKEN environment variable
         organization: "swipentap"
         replicas: 3
         label: "k3s-dev"
         name_prefix: "k3s-dev-runner"
+        group: "k3s-dev"
 
 apt-cache-ct: apt-cache 
 
@@ -170,6 +187,7 @@ ct:
       - sins dns installation
       - sins dns service configuration
       - sins dns service enablement
+      - configure dns records
   - name: k3s-control
     id: 11
     ip: 11  # Last octet only
@@ -189,6 +207,7 @@ ct:
       - cloud-init wait
       - lxc sysctl access configuration
       - k3s installation
+      - install k3s node watcher
   - name: k3s-worker-1
     id: 12
     ip: 12  # Last octet only
@@ -313,6 +332,8 @@ kubernetes:
   actions:
     - install cockroachdb
     - install github runner
+    - install certa
+    - install k3s node watcher
 
 # Script timeouts (in seconds)
 timeouts:
@@ -331,19 +352,23 @@ users:
 # Network services
 services:
   apt_cache:
-    port: 3142
+    port: 80
+    name: apt-cache
   postgresql:
     port: 5432
     username: postgres
     password: postgres
     database: postgres
+    name: pgsqlns
   haproxy:
     http_port: 80
     https_port: 443
     stats_port: 8404
+    name: haproxy
   rancher:
     port: 30443
     image: "rancher/rancher:latest"
+    name: rancher
   cockroachdb:
     version: "v25.2.4"
     nodes: 3
@@ -352,6 +377,18 @@ services:
     http_port: 30080
     grpc_port: 32658
     password: "root123"
+    name: db
+  certa:
+    image: "judyandiealvarez/certa:latest"
+    port: 30081
+    namespace: "certa"
+    replicas: 1
+    name: "certa"
+    database_host: "10.11.2.18"
+    database_port: 5432
+    database_name: "certa"
+    database_user: "postgres"
+    database_password: "postgres"
 
 # DNS servers
 dns:

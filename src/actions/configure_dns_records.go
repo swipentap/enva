@@ -190,6 +190,13 @@ func (a *ConfigureDnsRecordsAction) Execute() bool {
 		}
 	}
 
+	certaName := ""
+	if certaData, ok := servicesData["certa"].(map[string]interface{}); ok {
+		if name, ok := certaData["name"].(string); ok {
+			certaName = name
+		}
+	}
+
 	// Collect all DNS records to add (for all environments)
 	type DNSRecord struct {
 		fqdn string
@@ -279,6 +286,18 @@ func (a *ConfigureDnsRecordsAction) Execute() bool {
 				}
 			}
 		}
+
+		// Add certa DNS record (points to haproxy, which routes to k3s worker nodes)
+		if certaName != "" {
+			if ipOffset, found := getContainerIPOffset("haproxy", containersData); found {
+				ip := computeIP(network, ipOffset)
+				if ip != "" {
+					fqdn := fmt.Sprintf("%s.%s", certaName, domain)
+					allRecords = append(allRecords, DNSRecord{fqdn: fqdn, ip: ip})
+					libs.GetLogger("configure_dns_records").Info("  Will add: %s -> %s (via haproxy)", fqdn, ip)
+				}
+			}
+		}
 	}
 
 	// Add DNS records to sins DNS database for all environments
@@ -322,4 +341,3 @@ DO UPDATE SET
 
 	return true
 }
-

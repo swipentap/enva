@@ -47,6 +47,8 @@ func init() {
 	RegisterAction("glusterfs server installation", NewInstallGlusterfsAction)
 	RegisterAction("install cockroachdb", NewInstallCockroachdbAction)
 	RegisterAction("install github runner", NewInstallGithubRunnerAction)
+	RegisterAction("install certa", NewInstallCertAAction)
+	RegisterAction("install k3s node watcher", NewInstallK3sNodeWatcherAction)
 }
 
 // ActionFactory type alias for clarity

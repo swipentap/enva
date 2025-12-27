@@ -91,6 +91,20 @@ type GitHubRunnerConfig struct {
 	Group        *string `yaml:"group,omitempty"`
 }
 
+// CertAConfig represents CertA service configuration
+type CertAConfig struct {
+	Image            *string `yaml:"image,omitempty"`
+	Port             *int    `yaml:"port,omitempty"`
+	Namespace        *string `yaml:"namespace,omitempty"`
+	Replicas         *int    `yaml:"replicas,omitempty"`
+	Name             *string `yaml:"name,omitempty"`
+	DatabaseHost     *string `yaml:"database_host,omitempty"`
+	DatabasePort     *int    `yaml:"database_port,omitempty"`
+	DatabaseName     *string `yaml:"database_name,omitempty"`
+	DatabaseUser     *string `yaml:"database_user,omitempty"`
+	DatabasePassword *string `yaml:"database_password,omitempty"`
+}
+
 // ServicesConfig represents all services configuration
 type ServicesConfig struct {
 	APTcache     ServiceConfig       `yaml:"apt_cache"`
@@ -100,6 +114,7 @@ type ServicesConfig struct {
 	Longhorn     *ServiceConfig      `yaml:"longhorn,omitempty"`
 	CockroachDB  *ServiceConfig      `yaml:"cockroachdb,omitempty"`
 	GitHubRunner *GitHubRunnerConfig `yaml:"github_runner,omitempty"`
+	CertA        *CertAConfig        `yaml:"certa,omitempty"`
 }
 
 // UserConfig represents individual user configuration

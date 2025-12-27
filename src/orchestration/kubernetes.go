@@ -3,6 +3,7 @@ package orchestration
 import (
 	"enva/libs"
 	"enva/services"
+	"enva/verification"
 	"fmt"
 	"strconv"
 	"strings"
@@ -49,6 +50,14 @@ func DeployKubernetes(cfg *libs.LabConfig) bool {
 	if !installRancher(context, controlConfig) {
 		return false
 	}
+
+	// Restart all nodes and verify cluster health
+	libs.GetLogger("kubernetes").Printf("Restarting all k3s nodes to ensure stability...")
+	if !restartAndVerifyNodes(context, controlConfig) {
+		libs.GetLogger("kubernetes").Printf("⚠ Node restart/verification had issues, but deployment completed")
+		// Don't fail deployment, just warn
+	}
+
 	libs.GetLogger("kubernetes").Printf("Kubernetes (k3s) cluster deployed")
 	return true
 }
@@ -181,6 +190,26 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 			libs.GetLogger("kubernetes").Printf("Installation output: %s", installOutput[start:])
 		}
 		time.Sleep(2 * time.Second)
+
+		// Fix systemd service to ensure /dev/kmsg exists before k3s-agent starts (persistent fix for LXC)
+		libs.GetLogger("kubernetes").Printf("Configuring k3s-agent service to ensure /dev/kmsg exists on startup for worker %d...", workerID)
+		serviceFile := "/etc/systemd/system/k3s-agent.service"
+		checkServiceFileCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
+		serviceContent, _ := pctService.Execute(workerID, checkServiceFileCmd, nil)
+		if !strings.Contains(serviceContent, "/dev/kmsg") {
+			fixServiceCmd := fmt.Sprintf(`sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg \&\& ln -sf /dev/console /dev/kmsg"' %s 2>&1`, serviceFile)
+			fixOutput, fixExit := pctService.Execute(workerID, fixServiceCmd, nil)
+			if fixExit != nil && *fixExit == 0 {
+				libs.GetLogger("kubernetes").Printf("✓ Added /dev/kmsg fix to k3s-agent.service on worker %d", workerID)
+				reloadCmd := "systemctl daemon-reload 2>&1"
+				pctService.Execute(workerID, reloadCmd, nil)
+			} else {
+				libs.GetLogger("kubernetes").Printf("⚠ Failed to modify k3s-agent.service on worker %d: %s", workerID, fixOutput)
+			}
+		} else {
+			libs.GetLogger("kubernetes").Printf("✓ k3s-agent.service already has /dev/kmsg fix on worker %d", workerID)
+		}
+
 		serviceExistsCmd := "systemctl list-unit-files | grep -q k3s-agent.service && echo exists || echo not_exists"
 		serviceCheck, _ := pctService.Execute(workerID, serviceExistsCmd, nil)
 		if strings.Contains(serviceCheck, "not_exists") {
@@ -637,6 +666,8 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		} else {
 			libs.GetLogger("kubernetes").Printf("Failed to patch Rancher service NodePort: %s", patchOutput)
 		}
+
+		// Rancher verification will be done by setup_kubernetes action after deployment
 		return true
 	}
 	outputLen := len(installOutput)
@@ -657,4 +688,46 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		libs.GetLogger("kubernetes").Printf("k3s service logs: %s", k3sLogs)
 	}
 	return false
+}
+
+func restartAndVerifyNodes(context *KubernetesDeployContext, controlConfig *libs.ContainerConfig) bool {
+	lxcHost := context.LXCHost()
+	cfg := context.Cfg
+	controlID := controlConfig.ID
+	lxcService := services.NewLXCService(lxcHost, &cfg.SSH)
+	if !lxcService.Connect() {
+		return false
+	}
+	defer lxcService.Disconnect()
+	pctService := services.NewPCTService(lxcService)
+
+	libs.GetLogger("kubernetes").Printf("Restarting all k3s nodes...")
+
+	// Restart control node
+	libs.GetLogger("kubernetes").Printf("Restarting control node %d...", controlID)
+	restartControlCmd := "systemctl restart k3s 2>&1"
+	pctService.Execute(controlID, restartControlCmd, nil)
+	time.Sleep(10 * time.Second)
+
+	// Restart worker nodes
+	for _, workerConfig := range context.Workers {
+		workerID := workerConfig.ID
+		libs.GetLogger("kubernetes").Printf("Restarting worker node %d...", workerID)
+		restartWorkerCmd := "systemctl restart k3s-agent 2>&1"
+		pctService.Execute(workerID, restartWorkerCmd, nil)
+		time.Sleep(5 * time.Second)
+	}
+
+	libs.GetLogger("kubernetes").Printf("Waiting for nodes to stabilize after restart...")
+	time.Sleep(30 * time.Second)
+
+	// Run verification
+	libs.GetLogger("kubernetes").Printf("Running cluster health verification...")
+	if !verification.VerifyKubernetesCluster(context.Cfg, pctService) {
+		libs.GetLogger("kubernetes").Printf("⚠ Cluster verification found issues after restart")
+		return false
+	}
+
+	libs.GetLogger("kubernetes").Printf("✓ All nodes restarted and verified successfully")
+	return true
 }

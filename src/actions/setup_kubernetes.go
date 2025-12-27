@@ -4,6 +4,8 @@ import (
 	"enva/libs"
 	"enva/orchestration"
 	"enva/services"
+	"enva/verification"
+	"time"
 )
 
 // SetupKubernetesAction sets up Kubernetes (k3s) cluster
@@ -17,7 +19,7 @@ func NewSetupKubernetesAction(sshService *services.SSHService, aptService *servi
 			SSHService:   sshService,
 			APTService:   aptService,
 			PCTService:   pctService,
-			ContainerID: containerID,
+			ContainerID:  containerID,
 			Cfg:          cfg,
 			ContainerCfg: containerCfg,
 		},
@@ -39,6 +41,15 @@ func (a *SetupKubernetesAction) Execute() bool {
 		return false
 	}
 	libs.GetLogger("setup_kubernetes").Printf("Kubernetes deployment completed successfully.")
+
+	// Verify cluster health after deployment
+	if a.PCTService != nil {
+		libs.GetLogger("setup_kubernetes").Printf("Verifying k3s cluster health...")
+		time.Sleep(10 * time.Second) // Give services time to stabilize
+		if !verification.VerifyKubernetesCluster(a.Cfg, a.PCTService) {
+			libs.GetLogger("setup_kubernetes").Printf("⚠ Cluster health verification found issues, but deployment completed")
+			// Don't fail deployment, just warn
+		}
+	}
 	return true
 }
-

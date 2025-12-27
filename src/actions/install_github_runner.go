@@ -5,6 +5,7 @@ import (
 	"enva/orchestration"
 	"enva/services"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -65,8 +66,12 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	if runnerCfg.Token != nil {
 		githubToken = *runnerCfg.Token
 	}
+	// Fall back to environment variable if not in config
 	if githubToken == "" {
-		libs.GetLogger("install_github_runner").Printf("GitHub token not configured")
+		githubToken = os.Getenv("ENVA_GITHUB_TOKEN")
+	}
+	if githubToken == "" {
+		libs.GetLogger("install_github_runner").Printf("GitHub token not configured (check config or ENVA_GITHUB_TOKEN environment variable)")
 		return false
 	}
 

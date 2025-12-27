@@ -1,0 +1,38 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: pct-prod
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build enva
+        working-directory: src
+        run: go build -o enva main.go
+
+      - name: Install enva to system
+        run: |
+          sudo cp src/enva /usr/local/bin/enva
+          sudo chmod +x /usr/local/bin/enva
+
+      - name: Verify installation
+        run: which enva && enva --help
+
+      - name: Run redeploy prod
+        env:
+          ENVA_GITHUB_TOKEN: ${{ secrets.ENVA_GITHUB_TOKEN }}
+        run: enva redeploy prod
+
