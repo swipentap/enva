@@ -20,8 +20,8 @@ jobs:
 
       - name: Install enva to system
         run: |
-          sudo cp src/enva /usr/local/bin/enva
-          sudo chmod +x /usr/local/bin/enva
+          cp src/enva /usr/local/bin/enva
+          chmod +x /usr/local/bin/enva
 
       - name: Verify installation
         run: which enva && enva --help
