@@ -229,9 +229,16 @@ advertise-address: %s
 	if !strings.Contains(serviceContent, "/dev/kmsg") {
 		// Add ExecStartPre to create /dev/kmsg before other ExecStartPre commands
 		// Insert before the first ExecStartPre line (which is usually modprobe br_netfilter)
-		fixServiceCmd := fmt.Sprintf(`sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg \&\& ln -sf /dev/console /dev/kmsg"' %s 2>&1`, serviceFile)
-		fixOutput, fixExit := a.SSHService.Execute(fixServiceCmd, nil, true) // sudo=True
-		if fixExit != nil && *fixExit == 0 {
+		// Use heredoc approach for reliable sed execution (avoids escaping issues)
+		fixServiceScript := fmt.Sprintf(`bash -c 'cat > /tmp/fix_k3s_service.sh << "EOFSED"
+#!/bin/bash
+sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg"' %s
+EOFSED
+chmod +x /tmp/fix_k3s_service.sh
+/tmp/fix_k3s_service.sh && echo "success" || echo "failed"
+rm -f /tmp/fix_k3s_service.sh'`, serviceFile)
+		fixOutput, fixExit := a.SSHService.Execute(fixServiceScript, nil, true) // sudo=True
+		if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 			libs.GetLogger("install_k3s").Printf("✓ Added /dev/kmsg fix to %s.service", serviceName)
 			// Reload systemd to pick up changes
 			reloadCmd := "systemctl daemon-reload 2>&1"

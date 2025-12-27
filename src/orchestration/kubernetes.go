@@ -170,7 +170,7 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 			libs.GetLogger("kubernetes").Printf("k3s agent installation timed out on worker %d", workerID)
 			return false
 		}
-		if installExit != nil && *installExit != 0 {
+		if *installExit != 0 {
 			libs.GetLogger("kubernetes").Printf("k3s agent installation failed on worker %d", workerID)
 			outputLen := len(installOutput)
 			start := 0
@@ -191,15 +191,32 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 		}
 		time.Sleep(2 * time.Second)
 
+		// Create /dev/kmsg directly (same as control node) - required for k3s in LXC
+		libs.GetLogger("kubernetes").Printf("Creating /dev/kmsg symlink for worker %d...", workerID)
+		createKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg && test -L /dev/kmsg && echo created || echo failed"
+		kmsgOutput, kmsgExit := pctService.Execute(workerID, createKmsgCmd, nil)
+		if kmsgExit != nil && *kmsgExit == 0 && strings.Contains(kmsgOutput, "created") {
+			libs.GetLogger("kubernetes").Printf("✓ /dev/kmsg created on worker %d", workerID)
+		} else {
+			libs.GetLogger("kubernetes").Printf("⚠ Failed to create /dev/kmsg on worker %d: %s", workerID, kmsgOutput)
+		}
+
 		// Fix systemd service to ensure /dev/kmsg exists before k3s-agent starts (persistent fix for LXC)
 		libs.GetLogger("kubernetes").Printf("Configuring k3s-agent service to ensure /dev/kmsg exists on startup for worker %d...", workerID)
 		serviceFile := "/etc/systemd/system/k3s-agent.service"
 		checkServiceFileCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
 		serviceContent, _ := pctService.Execute(workerID, checkServiceFileCmd, nil)
 		if !strings.Contains(serviceContent, "/dev/kmsg") {
-			fixServiceCmd := fmt.Sprintf(`sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg \&\& ln -sf /dev/console /dev/kmsg"' %s 2>&1`, serviceFile)
-			fixOutput, fixExit := pctService.Execute(workerID, fixServiceCmd, nil)
-			if fixExit != nil && *fixExit == 0 {
+			// Use heredoc approach that works reliably with base64 encoding (avoids escaping issues)
+			fixServiceScript := fmt.Sprintf(`bash -c 'cat > /tmp/fix_k3s_service.sh << "EOFSED"
+#!/bin/bash
+sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg"' %s
+EOFSED
+chmod +x /tmp/fix_k3s_service.sh
+/tmp/fix_k3s_service.sh && echo "success" || echo "failed"
+rm -f /tmp/fix_k3s_service.sh'`, serviceFile)
+			fixOutput, fixExit := pctService.Execute(workerID, fixServiceScript, nil)
+			if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 				libs.GetLogger("kubernetes").Printf("✓ Added /dev/kmsg fix to k3s-agent.service on worker %d", workerID)
 				reloadCmd := "systemctl daemon-reload 2>&1"
 				pctService.Execute(workerID, reloadCmd, nil)
