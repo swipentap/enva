@@ -722,6 +722,57 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		}
 	}
 
+	if certaData, ok := servicesData["certa"].(map[string]interface{}); ok {
+		var image, namespace, name *string
+		var port, replicas *int
+		var databaseHost, databaseName, databaseUser, databasePassword *string
+		var databasePort *int
+
+		if img, ok := certaData["image"].(string); ok {
+			image = &img
+		}
+		if p, ok := certaData["port"].(int); ok {
+			port = &p
+		}
+		if ns, ok := certaData["namespace"].(string); ok {
+			namespace = &ns
+		}
+		if r, ok := certaData["replicas"].(int); ok {
+			replicas = &r
+		}
+		if n, ok := certaData["name"].(string); ok {
+			name = &n
+		}
+		if dbh, ok := certaData["database_host"].(string); ok {
+			databaseHost = &dbh
+		}
+		if dbp, ok := certaData["database_port"].(int); ok {
+			databasePort = &dbp
+		}
+		if dbn, ok := certaData["database_name"].(string); ok {
+			databaseName = &dbn
+		}
+		if dbu, ok := certaData["database_user"].(string); ok {
+			databaseUser = &dbu
+		}
+		if dbpw, ok := certaData["database_password"].(string); ok {
+			databasePassword = &dbpw
+		}
+
+		services.CertA = &CertAConfig{
+			Image:            image,
+			Port:             port,
+			Namespace:        namespace,
+			Replicas:         replicas,
+			Name:             name,
+			DatabaseHost:     databaseHost,
+			DatabasePort:     databasePort,
+			DatabaseName:     databaseName,
+			DatabaseUser:     databaseUser,
+			DatabasePassword: databasePassword,
+		}
+	}
+
 	// Parse users
 	usersData, ok := data["users"]
 	if !ok {
