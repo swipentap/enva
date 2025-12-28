@@ -9,7 +9,7 @@ environments:
     dns_server: "10.11.2.5"
     domain: "prod.net"
     certificate_path: "/etc/haproxy/wildcard.prod.net.pem"
-    certificate_source_path: "/root/certs/wildcard.prod.net.pem"
+    certificate_source_path: "certs/_.prod.net_haproxy.pem"
     lxc:
       host: "root@10.11.2.4"
       storage: "sdb"

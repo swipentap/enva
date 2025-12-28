@@ -7,6 +7,8 @@ import (
 	"enva/services"
 	"enva/verification"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -67,44 +69,44 @@ func (a *ConfigureHaproxyAction) Execute() bool {
 			return false
 		}
 		
-		// Connect to LXC host to read certificate file
-		lxcHost := a.Cfg.LXCHost()
-		lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
-		if !lxcService.Connect() {
-			libs.GetLogger("configure_haproxy").Error("Failed to connect to LXC host to read certificate file")
-			return false
+		// Read certificate file from local filesystem
+		sourcePath := *a.Cfg.CertificateSourcePath
+		// If path is relative, make it relative to current working directory
+		if !filepath.IsAbs(sourcePath) {
+			wd, err := os.Getwd()
+			if err != nil {
+				libs.GetLogger("configure_haproxy").Error("Failed to get current working directory: %v", err)
+				return false
+			}
+			sourcePath = filepath.Join(wd, sourcePath)
 		}
-		defer lxcService.Disconnect()
 		
 		// Check if certificate source file exists
-		checkSourceCmd := fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", *a.Cfg.CertificateSourcePath)
-		sourceCheck, _ := lxcService.Execute(checkSourceCmd, nil)
-		if !strings.Contains(sourceCheck, "exists") {
-			libs.GetLogger("configure_haproxy").Error("Certificate source file not found at %s", *a.Cfg.CertificateSourcePath)
+		if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+			libs.GetLogger("configure_haproxy").Error("Certificate source file not found at %s", sourcePath)
 			return false
 		}
 		
-		// Read certificate file content from LXC host
-		readCertCmd := fmt.Sprintf("cat %s", *a.Cfg.CertificateSourcePath)
-		certContent, readExit := lxcService.Execute(readCertCmd, nil)
-		if readExit != nil && *readExit != 0 {
-			libs.GetLogger("configure_haproxy").Error("Failed to read certificate file from %s: %s", *a.Cfg.CertificateSourcePath, certContent)
+		// Read certificate file content
+		certContent, err := os.ReadFile(sourcePath)
+		if err != nil {
+			libs.GetLogger("configure_haproxy").Error("Failed to read certificate file from %s: %v", sourcePath, err)
 			return false
 		}
-		if certContent == "" {
-			libs.GetLogger("configure_haproxy").Error("Certificate file is empty at %s", *a.Cfg.CertificateSourcePath)
+		if len(certContent) == 0 {
+			libs.GetLogger("configure_haproxy").Error("Certificate file is empty at %s", sourcePath)
 			return false
 		}
 		
 		// Write certificate to container using base64 encoding to avoid escaping issues
-		encodedCert := base64.StdEncoding.EncodeToString([]byte(certContent))
+		encodedCert := base64.StdEncoding.EncodeToString(certContent)
 		writeCertCmd := fmt.Sprintf(`echo %s | base64 -d > %s && chmod 644 %s && echo 'success' || echo 'failed'`, encodedCert, certPath, certPath)
 		writeOutput, writeExit := a.SSHService.Execute(writeCertCmd, nil, true) // sudo=True
 		if writeExit == nil || *writeExit != 0 || !strings.Contains(writeOutput, "success") {
 			libs.GetLogger("configure_haproxy").Error("Failed to write certificate to container at %s: %s", certPath, writeOutput)
 			return false
 		}
-		libs.GetLogger("configure_haproxy").Info("Certificate transferred successfully from %s to %s", *a.Cfg.CertificateSourcePath, certPath)
+		libs.GetLogger("configure_haproxy").Info("Certificate transferred successfully from %s to %s", sourcePath, certPath)
 	} else {
 		libs.GetLogger("configure_haproxy").Info("Using default SSL certificate path: %s", certPath)
 	}
