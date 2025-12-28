@@ -212,7 +212,7 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 export serviceFile
 cat > /tmp/fix_k3s_service.sh << 'EOFSED'
 #!/bin/bash
-sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg" "$serviceFile"
+sed -i "/ExecStartPre=-\/sbin\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c \\\"rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg\\\"" "$serviceFile"
 EOFSED
 chmod +x /tmp/fix_k3s_service.sh
 /tmp/fix_k3s_service.sh && echo "success" || echo "failed"
