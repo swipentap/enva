@@ -229,14 +229,16 @@ advertise-address: %s
 	if !strings.Contains(serviceContent, "/dev/kmsg") {
 		// Add ExecStartPre to create /dev/kmsg before other ExecStartPre commands
 		// Insert before the first ExecStartPre line (which is usually modprobe br_netfilter)
-		// Use heredoc approach for reliable sed execution (avoids escaping issues)
-		fixServiceScript := fmt.Sprintf(`bash -c 'cat > /tmp/fix_k3s_service.sh << "EOFSED"
+		// Use script file approach for reliable sed execution (avoids escaping issues)
+		fixServiceScript := fmt.Sprintf(`serviceFile="%s"
+export serviceFile
+cat > /tmp/fix_k3s_service.sh << 'EOFSED'
 #!/bin/bash
-sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg"' %s
+sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg" "$serviceFile"
 EOFSED
 chmod +x /tmp/fix_k3s_service.sh
 /tmp/fix_k3s_service.sh && echo "success" || echo "failed"
-rm -f /tmp/fix_k3s_service.sh'`, serviceFile)
+rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 		fixOutput, fixExit := a.SSHService.Execute(fixServiceScript, nil, true) // sudo=True
 		if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 			libs.GetLogger("install_k3s").Printf("✓ Added /dev/kmsg fix to %s.service", serviceName)
@@ -246,10 +248,14 @@ rm -f /tmp/fix_k3s_service.sh'`, serviceFile)
 			if reloadExit != nil && *reloadExit == 0 {
 				libs.GetLogger("install_k3s").Printf("✓ Systemd daemon reloaded")
 			} else {
-				libs.GetLogger("install_k3s").Printf("⚠ Failed to reload systemd: %s", reloadOutput)
+				libs.GetLogger("install_k3s").Printf("✗ Failed to reload systemd: %s", reloadOutput)
+				libs.GetLogger("install_k3s").Printf("✗ Deployment failed: systemd daemon-reload failed after adding ExecStartPre fix")
+				return false
 			}
 		} else {
-			libs.GetLogger("install_k3s").Printf("⚠ Failed to modify %s.service: %s", serviceName, fixOutput)
+			libs.GetLogger("install_k3s").Printf("✗ Failed to modify %s.service: %s", serviceName, fixOutput)
+			libs.GetLogger("install_k3s").Printf("✗ Deployment failed: %s.service must have ExecStartPre fix for /dev/kmsg (required for LXC containers)", serviceName)
+			return false
 		}
 	} else {
 		libs.GetLogger("install_k3s").Printf("✓ %s.service already has /dev/kmsg fix", serviceName)

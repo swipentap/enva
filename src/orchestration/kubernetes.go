@@ -207,21 +207,25 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 		checkServiceFileCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
 		serviceContent, _ := pctService.Execute(workerID, checkServiceFileCmd, nil)
 		if !strings.Contains(serviceContent, "/dev/kmsg") {
-			// Use heredoc approach that works reliably with base64 encoding (avoids escaping issues)
-			fixServiceScript := fmt.Sprintf(`bash -c 'cat > /tmp/fix_k3s_service.sh << "EOFSED"
+			// Use script file approach that works reliably with base64 encoding (avoids escaping issues)
+			fixServiceScript := fmt.Sprintf(`serviceFile="%s"
+export serviceFile
+cat > /tmp/fix_k3s_service.sh << 'EOFSED'
 #!/bin/bash
-sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg"' %s
+sed -i '/ExecStartPre=-\\/sbin\\/modprobe br_netfilter/i ExecStartPre=-/bin/bash -c "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg" "$serviceFile"
 EOFSED
 chmod +x /tmp/fix_k3s_service.sh
 /tmp/fix_k3s_service.sh && echo "success" || echo "failed"
-rm -f /tmp/fix_k3s_service.sh'`, serviceFile)
+rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 			fixOutput, fixExit := pctService.Execute(workerID, fixServiceScript, nil)
 			if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 				libs.GetLogger("kubernetes").Printf("✓ Added /dev/kmsg fix to k3s-agent.service on worker %d", workerID)
 				reloadCmd := "systemctl daemon-reload 2>&1"
 				pctService.Execute(workerID, reloadCmd, nil)
 			} else {
-				libs.GetLogger("kubernetes").Printf("⚠ Failed to modify k3s-agent.service on worker %d: %s", workerID, fixOutput)
+				libs.GetLogger("kubernetes").Printf("✗ Failed to modify k3s-agent.service on worker %d: %s", workerID, fixOutput)
+				libs.GetLogger("kubernetes").Printf("✗ Deployment failed: k3s-agent.service must have ExecStartPre fix for /dev/kmsg (required for LXC containers)")
+				return false
 			}
 		} else {
 			libs.GetLogger("kubernetes").Printf("✓ k3s-agent.service already has /dev/kmsg fix on worker %d", workerID)
