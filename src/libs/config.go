@@ -227,26 +227,28 @@ type BackupConfig struct {
 
 // LabConfig represents main lab configuration class
 type LabConfig struct {
-	Network           string
-	LXC               LXCConfig
-	Containers        []ContainerConfig
-	Templates         []TemplateConfig
-	Services          ServicesConfig
-	Users             UsersConfig
-	DNS               DNSConfig
-	Docker            DockerConfig
-	TemplateConfig    TemplatePatternsConfig
-	SSH               SSHConfig
-	Waits             WaitsConfig
-	Timeouts          TimeoutsConfig
-	IDBase            int
-	PostgresHost      *string
-	GlusterFS         *GlusterFSConfig
-	Kubernetes        *KubernetesConfig
-	KubernetesActions []string
-	Backup            *BackupConfig
-	APTCacheCT        string
-	Domain            *string // Environment domain (e.g., dev.net, test.net, prod.net)
+	Network               string
+	LXC                   LXCConfig
+	Containers            []ContainerConfig
+	Templates             []TemplateConfig
+	Services              ServicesConfig
+	Users                 UsersConfig
+	DNS                   DNSConfig
+	Docker                DockerConfig
+	TemplateConfig        TemplatePatternsConfig
+	SSH                   SSHConfig
+	Waits                 WaitsConfig
+	Timeouts              TimeoutsConfig
+	IDBase                int
+	PostgresHost          *string
+	GlusterFS             *GlusterFSConfig
+	Kubernetes            *KubernetesConfig
+	KubernetesActions     []string
+	Backup                *BackupConfig
+	APTCacheCT            string
+	Domain                *string // Environment domain (e.g., dev.net, test.net, prod.net)
+	CertificatePath       *string // Path to SSL certificate file for HAProxy in container (e.g., /etc/haproxy/wildcard.prod.net.pem)
+	CertificateSourcePath *string // Path to SSL certificate source file on LXC host (e.g., /root/certs/wildcard.prod.net.pem)
 	// Computed fields
 	NetworkBase       *string
 	Gateway           *string
@@ -1073,27 +1075,41 @@ func FromDict(data map[string]interface{}, verbose bool, environment *string) (*
 		}
 	}
 
+	// Parse certificate_path and certificate_source_path from environment
+	var certificatePath *string
+	var certificateSourcePath *string
+	if envData != nil {
+		if cp, ok := envData["certificate_path"].(string); ok {
+			certificatePath = &cp
+		}
+		if csp, ok := envData["certificate_source_path"].(string); ok {
+			certificateSourcePath = &csp
+		}
+	}
+
 	config := &LabConfig{
-		Network:           network,
-		LXC:               lxc,
-		Containers:        containers,
-		Templates:         templates,
-		Services:          services,
-		Users:             users,
-		DNS:               dns,
-		Docker:            docker,
-		TemplateConfig:    templateConfig,
-		SSH:               ssh,
-		Waits:             waits,
-		Timeouts:          timeouts,
-		IDBase:            idBase,
-		PostgresHost:      postgresHost,
-		GlusterFS:         glusterfs,
-		Kubernetes:        kubernetes,
-		KubernetesActions: kubernetesActions,
-		Backup:            backup,
-		APTCacheCT:        aptCacheCT,
-		Domain:            domain,
+		Network:               network,
+		LXC:                   lxc,
+		Containers:            containers,
+		Templates:             templates,
+		Services:              services,
+		Users:                 users,
+		DNS:                   dns,
+		Docker:                docker,
+		TemplateConfig:        templateConfig,
+		SSH:                   ssh,
+		Waits:                 waits,
+		Timeouts:              timeouts,
+		IDBase:                idBase,
+		PostgresHost:          postgresHost,
+		GlusterFS:             glusterfs,
+		Kubernetes:            kubernetes,
+		KubernetesActions:     kubernetesActions,
+		Backup:                backup,
+		APTCacheCT:            aptCacheCT,
+		Domain:                domain,
+		CertificatePath:       certificatePath,
+		CertificateSourcePath: certificateSourcePath,
 	}
 
 	config.ComputeDerivedFields()

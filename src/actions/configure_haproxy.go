@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"encoding/base64"
 	"enva/cli"
 	"enva/libs"
 	"enva/services"
@@ -52,32 +53,86 @@ func (a *ConfigureHaproxyAction) Execute() bool {
 		}
 	}
 
-	// Generate SSL certificate for HTTPS if not exists
+	// Determine SSL certificate path - use configured path if provided, otherwise default
 	certPath := "/etc/haproxy/haproxy.pem"
-	libs.GetLogger("configure_haproxy").Info("Ensuring SSL certificate exists for HTTPS...")
-
-	// Check if certificate exists
-	checkCertCmd := fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", certPath)
-	certCheck, _ := a.SSHService.Execute(checkCertCmd, nil, true) // sudo=True
-
-	if !strings.Contains(certCheck, "exists") {
-		libs.GetLogger("configure_haproxy").Info("Generating self-signed SSL certificate...")
-		// Generate certificate with wildcard for domain
-		domain := "*"
-		if a.Cfg.Domain != nil && *a.Cfg.Domain != "" {
-			domain = fmt.Sprintf("*.%s", *a.Cfg.Domain)
+	useCustomCert := false
+	if a.Cfg.CertificatePath != nil && *a.Cfg.CertificatePath != "" {
+		certPath = *a.Cfg.CertificatePath
+		useCustomCert = true
+		libs.GetLogger("configure_haproxy").Info("Using configured SSL certificate path: %s", certPath)
+		
+		// If custom certificate path is configured, certificate_source_path must also be configured
+		if a.Cfg.CertificateSourcePath == nil || *a.Cfg.CertificateSourcePath == "" {
+			libs.GetLogger("configure_haproxy").Error("certificate_path is configured but certificate_source_path is missing")
+			return false
 		}
-		generateCertCmd := fmt.Sprintf(`cd /tmp && openssl req -x509 -newkey rsa:2048 -keyout haproxy.key -out haproxy.crt -days 365 -nodes -subj "/CN=%s" >/dev/null 2>&1 && cat haproxy.key haproxy.crt > %s && chmod 644 %s && rm -f haproxy.key haproxy.crt`, domain, certPath, certPath)
-		certOutput, certExitCode := a.SSHService.Execute(generateCertCmd, nil, true) // sudo=True
-		if certExitCode != nil && *certExitCode != 0 {
-			libs.GetLogger("configure_haproxy").Warning("Failed to generate SSL certificate: %s", certOutput)
-			// Continue without SSL - will use HTTP mode only
-			certPath = ""
-		} else {
-			libs.GetLogger("configure_haproxy").Info("SSL certificate generated successfully at %s", certPath)
+		
+		// Connect to LXC host to read certificate file
+		lxcHost := a.Cfg.LXCHost()
+		lxcService := services.NewLXCService(lxcHost, &a.Cfg.SSH)
+		if !lxcService.Connect() {
+			libs.GetLogger("configure_haproxy").Error("Failed to connect to LXC host to read certificate file")
+			return false
 		}
+		defer lxcService.Disconnect()
+		
+		// Check if certificate source file exists
+		checkSourceCmd := fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", *a.Cfg.CertificateSourcePath)
+		sourceCheck, _ := lxcService.Execute(checkSourceCmd, nil)
+		if !strings.Contains(sourceCheck, "exists") {
+			libs.GetLogger("configure_haproxy").Error("Certificate source file not found at %s", *a.Cfg.CertificateSourcePath)
+			return false
+		}
+		
+		// Read certificate file content from LXC host
+		readCertCmd := fmt.Sprintf("cat %s", *a.Cfg.CertificateSourcePath)
+		certContent, readExit := lxcService.Execute(readCertCmd, nil)
+		if readExit != nil && *readExit != 0 {
+			libs.GetLogger("configure_haproxy").Error("Failed to read certificate file from %s: %s", *a.Cfg.CertificateSourcePath, certContent)
+			return false
+		}
+		if certContent == "" {
+			libs.GetLogger("configure_haproxy").Error("Certificate file is empty at %s", *a.Cfg.CertificateSourcePath)
+			return false
+		}
+		
+		// Write certificate to container using base64 encoding to avoid escaping issues
+		encodedCert := base64.StdEncoding.EncodeToString([]byte(certContent))
+		writeCertCmd := fmt.Sprintf(`echo %s | base64 -d > %s && chmod 644 %s && echo 'success' || echo 'failed'`, encodedCert, certPath, certPath)
+		writeOutput, writeExit := a.SSHService.Execute(writeCertCmd, nil, true) // sudo=True
+		if writeExit == nil || *writeExit != 0 || !strings.Contains(writeOutput, "success") {
+			libs.GetLogger("configure_haproxy").Error("Failed to write certificate to container at %s: %s", certPath, writeOutput)
+			return false
+		}
+		libs.GetLogger("configure_haproxy").Info("Certificate transferred successfully from %s to %s", *a.Cfg.CertificateSourcePath, certPath)
 	} else {
-		libs.GetLogger("configure_haproxy").Info("SSL certificate already exists at %s", certPath)
+		libs.GetLogger("configure_haproxy").Info("Using default SSL certificate path: %s", certPath)
+	}
+	
+	// For default certificate, check if it exists and generate if needed
+	if !useCustomCert {
+		checkCertCmd := fmt.Sprintf("test -f %s && echo 'exists' || echo 'missing'", certPath)
+		certCheck, _ := a.SSHService.Execute(checkCertCmd, nil, true) // sudo=True
+		
+		if !strings.Contains(certCheck, "exists") {
+			libs.GetLogger("configure_haproxy").Info("Generating self-signed SSL certificate...")
+			// Generate certificate with wildcard for domain
+			domain := "*"
+			if a.Cfg.Domain != nil && *a.Cfg.Domain != "" {
+				domain = fmt.Sprintf("*.%s", *a.Cfg.Domain)
+			}
+			generateCertCmd := fmt.Sprintf(`cd /tmp && openssl req -x509 -newkey rsa:2048 -keyout haproxy.key -out haproxy.crt -days 365 -nodes -subj "/CN=%s" >/dev/null 2>&1 && cat haproxy.key haproxy.crt > %s && chmod 644 %s && rm -f haproxy.key haproxy.crt`, domain, certPath, certPath)
+			certOutput, certExitCode := a.SSHService.Execute(generateCertCmd, nil, true) // sudo=True
+			if certExitCode != nil && *certExitCode != 0 {
+				libs.GetLogger("configure_haproxy").Warning("Failed to generate SSL certificate: %s", certOutput)
+				// Continue without SSL - will use HTTP mode only
+				certPath = ""
+			} else {
+				libs.GetLogger("configure_haproxy").Info("SSL certificate generated successfully at %s", certPath)
+			}
+		} else {
+			libs.GetLogger("configure_haproxy").Info("SSL certificate exists at %s", certPath)
+		}
 	}
 	// Build frontends and backends for each service with a name
 	frontends := []string{}
