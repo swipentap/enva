@@ -146,93 +146,66 @@ public class InstallArgoCDAppsAction : BaseAction, IAction
                 return false;
             }
 
-            // Install git if not available
-            logger.Printf("Checking for git...");
-            string gitCheckCmd = "command -v git && echo installed || echo not_installed";
-            (string gitCheck, _) = pctService.Execute(controlID, gitCheckCmd, null);
-            if (gitCheck.Contains("not_installed"))
-            {
-                logger.Printf("Installing git...");
-                string installGitCmd = "apt-get update && apt-get install -y git";
-                pctService.Execute(controlID, installGitCmd, 120);
-            }
+            // Create root Application manifest
+            logger.Printf("Creating root Application manifest...");
+            string rootAppName = "root-apps";
+            string rootAppYaml = $@"apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {rootAppName}
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: {repoUrl}
+    targetRevision: {targetRevision}
+    path: {path}
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    refresh:
+      time: 0s
+";
 
-            // Clone or update the repository
-            string tempDir = "/tmp/argocd-apps-repo";
-            logger.Printf("Cloning repository to {0}...", tempDir);
-            
-            // Remove existing directory if it exists
-            string cleanupCmd = $"rm -rf {tempDir}";
-            pctService.Execute(controlID, cleanupCmd, 30);
-            
-            // Clone the repository
-            string cloneCmd = $"git clone --depth 1 --branch {targetRevision} {repoUrl} {tempDir}";
-            int timeout = 300;
-            (string cloneOutput, int? cloneExit) = pctService.Execute(controlID, cloneCmd, timeout);
-            if (cloneExit.HasValue && cloneExit.Value != 0)
+            // Write manifest to temporary file
+            string tempYamlFile = "/tmp/root-apps.yaml";
+            string writeYamlCmd = $"cat > {tempYamlFile} << 'EOF'\n{rootAppYaml}EOF";
+            (string writeOutput, int? writeExit) = pctService.Execute(controlID, writeYamlCmd, 30);
+            if (writeExit.HasValue && writeExit.Value != 0)
             {
-                logger.Printf("Failed to clone repository: {0}", cloneOutput);
+                logger.Printf("Failed to write root Application manifest: {0}", writeOutput);
                 return false;
             }
 
-            // Apply all YAML files from the applications directory
-            string appsPath = $"{tempDir}/{path}";
-            logger.Printf("Applying ArgoCD applications from {0}...", appsPath);
-            
-            // Check if directory exists
-            string checkDirCmd = $"test -d {appsPath} && echo exists || echo not_exists";
-            (string dirCheck, _) = pctService.Execute(controlID, checkDirCmd, 30);
-            if (dirCheck.Contains("not_exists"))
+            // Apply root Application
+            logger.Printf("Applying root Application...");
+            string applyCmd = $"export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl apply -f {tempYamlFile}";
+            (string applyOutput, int? applyExit) = pctService.Execute(controlID, applyCmd, 60);
+            if (applyExit.HasValue && applyExit.Value != 0)
             {
-                logger.Printf("Applications directory {0} does not exist in repository", appsPath);
+                logger.Printf("Failed to apply root Application: {0}", applyOutput);
+                // Cleanup temp file
+                string cleanupCmd = $"rm -f {tempYamlFile}";
+                pctService.Execute(controlID, cleanupCmd, 10);
                 return false;
             }
 
-            // Find all YAML files in the directory
-            string findFilesCmd = $"find {appsPath} -name '*.yaml' -o -name '*.yml'";
-            (string filesList, _) = pctService.Execute(controlID, findFilesCmd, 30);
-            if (string.IsNullOrEmpty(filesList) || filesList.Trim().Length == 0)
-            {
-                logger.Printf("No YAML files found in {0}", appsPath);
-                return false;
-            }
+            // Cleanup temp file
+            string cleanupTempCmd = $"rm -f {tempYamlFile}";
+            pctService.Execute(controlID, cleanupTempCmd, 10);
 
-            string[] files = filesList.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            logger.Printf("Found {0} YAML file(s) to apply", files.Length);
-
-            // Apply each file
-            bool allSuccess = true;
-            foreach (string file in files)
-            {
-                string filePath = file.Trim();
-                logger.Printf("Applying {0}...", filePath);
-                string applyCmd = $"export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl apply -f {filePath}";
-                (string applyOutput, int? applyExit) = pctService.Execute(controlID, applyCmd, 60);
-                if (applyExit.HasValue && applyExit.Value == 0)
-                {
-                    logger.Printf("✓ Successfully applied {0}", filePath);
-                }
-                else
-                {
-                    logger.Printf("✗ Failed to apply {0}: {1}", filePath, applyOutput);
-                    allSuccess = false;
-                }
-            }
-
-            // Cleanup
-            logger.Printf("Cleaning up temporary repository...");
-            pctService.Execute(controlID, cleanupCmd, 30);
-
-            if (allSuccess)
-            {
-                logger.Printf("ArgoCD applications installed successfully");
-            }
-            else
-            {
-                logger.Printf("Some ArgoCD applications failed to install");
-            }
-
-            return allSuccess;
+            logger.Printf("Root Application '{0}' created successfully. ArgoCD will now automatically discover and manage applications from {1}", rootAppName, repoUrl);
+            return true;
         }
         finally
         {
