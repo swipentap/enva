@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const defaultLoggerName = "enva"
+const (
+	defaultLoggerName = "enva"
+	logSeparator      = "=================================================="
+)
 
 var (
 	defaultLogger *Logger
@@ -121,6 +124,30 @@ func (l *Logger) Printf(format string, args ...interface{}) {
 // Print is an alias for Info to maintain compatibility
 func (l *Logger) Print(args ...interface{}) {
 	l.Info("%s", fmt.Sprint(args...))
+}
+
+// InfoBanner logs a message with separator lines above and below (banner style)
+func (l *Logger) InfoBanner(message string) {
+	l.Info(logSeparator)
+	l.Info(message)
+	l.Info(logSeparator)
+}
+
+// InfoBannerf logs a formatted message with separator lines above and below (banner style)
+func (l *Logger) InfoBannerf(format string, args ...interface{}) {
+	l.Info(logSeparator)
+	l.Info(format, args...)
+	l.Info(logSeparator)
+}
+
+// InfoBannerStart logs the opening separator line
+func (l *Logger) InfoBannerStart() {
+	l.Info(logSeparator)
+}
+
+// InfoBannerEnd logs the closing separator line
+func (l *Logger) InfoBannerEnd() {
+	l.Info(logSeparator)
 }
 
 // LogTraceback logs a traceback-equivalent (stack trace) for errors

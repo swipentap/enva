@@ -1,0 +1,161 @@
+---
+- name: Install GlusterFS server on nodes
+  hosts: glusterfs_nodes
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install GlusterFS server and client
+      apt:
+        name:
+          - glusterfs-server
+          - glusterfs-client
+        state: present
+
+    - name: Start and enable glusterd service
+      systemd:
+        name: glusterd
+        enabled: yes
+        state: started
+
+    - name: Wait for glusterd to be ready
+      wait_for:
+        port: 24007
+        host: "{{ ansible_host }}"
+        delay: 5
+        timeout: 60
+      delegate_to: localhost
+
+    - name: Create brick directory
+      file:
+        path: "{{ glusterfs_brick_path }}"
+        state: directory
+        mode: '0755'
+
+- name: Setup GlusterFS cluster
+  hosts: glusterfs_nodes[0]
+  become: yes
+  vars:
+    gluster_manager: "{{ groups['glusterfs_nodes'][0] }}"
+    gluster_workers: "{{ groups['glusterfs_nodes'][1:] }}"
+  tasks:
+    - name: Peer probe worker nodes
+      shell: |
+        gluster peer probe {{ hostvars[item]['ansible_host'] }} || true
+      loop: "{{ gluster_workers }}"
+      register: peer_probe_result
+      failed_when: false
+
+    - name: Wait for peers to connect
+      shell: gluster peer status
+      register: peer_status
+      until: peer_status.stdout | regex_search('Peer in Cluster \\(Connected\\)')
+      retries: 10
+      delay: 3
+      failed_when: false
+
+    - name: Show peer status
+      debug:
+        msg: "{{ peer_status.stdout }}"
+
+    - name: Check if volume exists
+      shell: gluster volume info {{ glusterfs_volume_name }}
+      register: volume_info
+      failed_when: false
+      changed_when: false
+
+    - name: Create GlusterFS volume
+      shell: |
+        gluster volume create {{ glusterfs_volume_name }} replica {{ glusterfs_replica_count }} \
+        {% for node in groups['glusterfs_nodes'] %}{{ hostvars[node]['ansible_host'] }}:{{ glusterfs_brick_path }}{% if not loop.last %} {% endif %}{% endfor %} force
+      when: volume_info.rc != 0
+      register: volume_create
+
+    - name: Start GlusterFS volume
+      shell: gluster volume start {{ glusterfs_volume_name }}
+      when: volume_info.rc != 0 or 'not started' in volume_info.stdout
+      register: volume_start
+
+    - name: Show volume status
+      shell: gluster volume status {{ glusterfs_volume_name }}
+      register: volume_status
+      changed_when: false
+
+    - name: Display volume status
+      debug:
+        msg: "{{ volume_status.stdout_lines }}"
+
+- name: Mount GlusterFS volume on all nodes
+  hosts: glusterfs_nodes
+  become: yes
+  vars:
+    gluster_manager: "{{ groups['glusterfs_nodes'][0] }}"
+    gluster_manager_ip: "{{ hostvars[gluster_manager]['ansible_host'] }}"
+  tasks:
+    - name: Install glusterfs-client if not already installed
+      apt:
+        name: glusterfs-client
+        state: present
+
+    - name: Create mount point
+      file:
+        path: "{{ glusterfs_mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Add GlusterFS to fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }} {{ glusterfs_mount_point }} glusterfs defaults,_netdev 0 0"
+        regexp: '^{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }}'
+        state: present
+
+    - name: Mount GlusterFS volume
+      mount:
+        path: "{{ glusterfs_mount_point }}"
+        src: "{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }}"
+        fstype: glusterfs
+        state: mounted
+
+    - name: Verify mount
+      shell: mount | grep "{{ glusterfs_mount_point }}" | grep gluster
+      register: mount_check
+      changed_when: false
+
+    - name: Display mount status
+      debug:
+        msg: "{{ mount_check.stdout }}"
+
+- name: Mount GlusterFS on k3s control node
+  hosts: k3s_control
+  become: yes
+  vars:
+    gluster_manager: "{{ groups['glusterfs_nodes'][0] }}"
+    gluster_manager_ip: "{{ hostvars[gluster_manager]['ansible_host'] }}"
+  tasks:
+    - name: Install glusterfs-client
+      apt:
+        name: glusterfs-client
+        state: present
+
+    - name: Create mount point
+      file:
+        path: "{{ glusterfs_mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Add GlusterFS to fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }} {{ glusterfs_mount_point }} glusterfs defaults,_netdev 0 0"
+        regexp: '^{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }}'
+        state: present
+
+    - name: Mount GlusterFS volume
+      mount:
+        path: "{{ glusterfs_mount_point }}"
+        src: "{{ gluster_manager_ip }}:/{{ glusterfs_volume_name }}"
+        fstype: glusterfs
+        state: mounted

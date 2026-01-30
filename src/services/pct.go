@@ -204,11 +204,11 @@ func (p *PCTService) WaitForContainer(containerID int, ipAddress string, cfg *li
 		}
 	}
 	for i := 1; i <= maxAttempts; i++ {
-		statusCmd := fmt.Sprintf("pct status %d 2>&1", containerID)
+		statusCmd := fmt.Sprintf("pct status %d", containerID)
 		statusOutput, _ := p.lxc.Execute(statusCmd, nil)
 		if strings.Contains(statusOutput, "running") {
 			// Try ping
-			pingCmd := fmt.Sprintf("ping -c 1 -W 2 %s 2>&1", ipAddress)
+			pingCmd := fmt.Sprintf("ping -c 1 -W 2 %s", ipAddress)
 			pingOutput, pingExit := p.lxc.Execute(pingCmd, nil)
 			if pingExit != nil && *pingExit == 0 && strings.Contains(pingOutput, "1 received") {
 				libs.GetLogger("pct").Printf("Container is up!")

@@ -42,7 +42,7 @@ func (a *InstallK3sAction) Execute() bool {
 	k3sCheckCmd := cli.NewCommand().SetCommand("k3s").Exists()
 	checkOutput, checkExit := a.SSHService.Execute(k3sCheckCmd, nil)
 	if checkExit != nil && *checkExit == 0 && checkOutput != "" {
-		versionCmd := "k3s --version 2>&1"
+		versionCmd := "k3s --version"
 		versionOutput, versionExit := a.SSHService.Execute(versionCmd, nil)
 		if versionExit != nil && *versionExit == 0 && versionOutput != "" && strings.Contains(strings.ToLower(versionOutput), "k3s") {
 			libs.GetLogger("install_k3s").Printf("k3s is already installed: %s", strings.TrimSpace(versionOutput))
@@ -58,9 +58,9 @@ func (a *InstallK3sAction) Execute() bool {
 			}
 			if isControl {
 				libs.GetLogger("install_k3s").Printf("Ensuring /dev/kmsg exists for k3s (LXC requirement)...")
-				removeCmd := "rm -f /dev/kmsg 2>/dev/null || true"
+				removeCmd := "rm -f /dev/kmsg || true"
 				a.SSHService.Execute(removeCmd, nil, true) // sudo=True
-				createKmsgCmd := "ln -sf /dev/console /dev/kmsg 2>&1"
+				createKmsgCmd := "ln -sf /dev/console /dev/kmsg"
 				createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
 				if createExit != nil && *createExit != 0 {
 					outputLen := len(createOutput)
@@ -77,7 +77,7 @@ func (a *InstallK3sAction) Execute() bool {
 				if verifyOutput != "" {
 					libs.GetLogger("install_k3s").Printf("/dev/kmsg status: %s", strings.TrimSpace(verifyOutput))
 				}
-				restartCmd := "systemctl restart k3s 2>&1"
+				restartCmd := "systemctl restart k3s"
 				restartOutput, restartExit := a.SSHService.Execute(restartCmd, nil, true) // sudo=True
 				if restartExit != nil && *restartExit != 0 {
 					outputLen := len(restartOutput)
@@ -123,7 +123,7 @@ func (a *InstallK3sAction) Execute() bool {
 	// Create /dev/kmsg device inside container (required for k3s in LXC)
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Creating /dev/kmsg device for k3s...")
-		removeCmd := "rm -f /dev/kmsg 2>/dev/null || true"
+		removeCmd := "rm -f /dev/kmsg || true"
 		a.SSHService.Execute(removeCmd, nil, true) // sudo=True
 		createKmsgCmd := "ln -sf /dev/console /dev/kmsg"
 		createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
@@ -205,7 +205,7 @@ advertise-address: %s
 		return false
 	}
 
-	versionCmd := "k3s --version 2>&1"
+	versionCmd := "k3s --version"
 	versionOutput, versionExit := a.SSHService.Execute(versionCmd, nil)
 	if versionExit == nil || *versionExit != 0 || versionOutput == "" || !strings.Contains(strings.ToLower(versionOutput), "k3s") {
 		libs.GetLogger("install_k3s").Printf("k3s installation failed - verification shows k3s is not installed")
@@ -222,7 +222,7 @@ advertise-address: %s
 	serviceFile := fmt.Sprintf("/etc/systemd/system/%s.service", serviceName)
 
 	// Read current service file
-	readServiceCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
+	readServiceCmd := fmt.Sprintf("cat %s", serviceFile)
 	serviceContent, _ := a.SSHService.Execute(readServiceCmd, nil, true) // sudo=True
 
 	// Check if ExecStartPre for /dev/kmsg already exists
@@ -243,7 +243,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 		if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 			libs.GetLogger("install_k3s").Printf("✓ Added /dev/kmsg fix to %s.service", serviceName)
 			// Reload systemd to pick up changes
-			reloadCmd := "systemctl daemon-reload 2>&1"
+			reloadCmd := "systemctl daemon-reload"
 			reloadOutput, reloadExit := a.SSHService.Execute(reloadCmd, nil, true) // sudo=True
 			if reloadExit != nil && *reloadExit == 0 {
 				libs.GetLogger("install_k3s").Printf("✓ Systemd daemon reloaded")
@@ -264,7 +264,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 	// Setup kubectl PATH and kubeconfig for root user
 	if isControl {
 		libs.GetLogger("install_k3s").Printf("Setting up kubectl PATH and kubeconfig...")
-		symlinkCmd := "ln -sf /usr/local/bin/kubectl /usr/bin/kubectl 2>/dev/null || true"
+		symlinkCmd := "ln -sf /usr/local/bin/kubectl /usr/bin/kubectl || true"
 		a.SSHService.Execute(symlinkCmd, nil, true) // sudo=True
 		maxWait := 60
 		waitTime := 0
@@ -315,7 +315,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 		verifyKmsgOutput, verifyKmsgExit := a.SSHService.Execute(verifyKmsgCmd, nil, true) // sudo=True
 		if verifyKmsgExit == nil || *verifyKmsgExit != 0 || !strings.Contains(verifyKmsgOutput, "exists") {
 			libs.GetLogger("install_k3s").Printf("Creating /dev/kmsg symlink on worker node...")
-			createKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg 2>&1"
+			createKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg"
 			createOutput, createExit := a.SSHService.Execute(createKmsgCmd, nil, true) // sudo=True
 			if createExit != nil && *createExit == 0 {
 				libs.GetLogger("install_k3s").Printf("✓ /dev/kmsg created on worker node")

@@ -59,7 +59,7 @@ func (a *ConfigureSinsServiceAction) Execute() bool {
 		}
 		if !needsUpdate {
 			libs.GetLogger("configure_sins_service").Printf("SiNS service file already configured with correct web port and timeout")
-			reloadCmd := "systemctl daemon-reload 2>/dev/null || true"
+			reloadCmd := "systemctl daemon-reload || true"
 			a.SSHService.Execute(reloadCmd, nil, true)
 			return true
 		}
@@ -67,14 +67,14 @@ func (a *ConfigureSinsServiceAction) Execute() bool {
 		_, exitCode := a.SSHService.Execute(updateCmd, nil, true)
 		if exitCode != nil && *exitCode == 0 {
 			libs.GetLogger("configure_sins_service").Printf("Updated SiNS service file: changed Type=notify to Type=simple, ASPNETCORE_URLS=http://0.0.0.0:%d, TimeoutStartSec=300", webPort)
-			reloadCmd := "systemctl daemon-reload 2>/dev/null || true"
+			reloadCmd := "systemctl daemon-reload || true"
 			a.SSHService.Execute(reloadCmd, nil, true)
 			return true
 		}
 		libs.GetLogger("configure_sins_service").Printf("Failed to update service file, will create new one")
 	}
 	libs.GetLogger("configure_sins_service").Printf("Creating SiNS systemd service...")
-	findBinaryCmd := "test -f /opt/sins/sins && echo /opt/sins/sins || (which sins 2>/dev/null || find /usr /opt -name 'sins.dll' -o -name 'sins' -type f 2>/dev/null | head -1)"
+	findBinaryCmd := "test -f /opt/sins/sins && echo /opt/sins/sins || (which sins || find /usr /opt -name 'sins.dll' -o -name 'sins' -type f | head -1)"
 	binaryPath, _ := a.SSHService.Execute(findBinaryCmd, nil)
 	if binaryPath == "" || strings.TrimSpace(binaryPath) == "" {
 		libs.GetLogger("configure_sins_service").Printf("Could not find SiNS binary")
@@ -130,7 +130,7 @@ TimeoutStartSec=300
 WantedBy=multi-user.target
 `, workingDir, webPort, execStart)
 	serviceB64 := base64.StdEncoding.EncodeToString([]byte(serviceContent))
-	serviceCmd := fmt.Sprintf("systemctl stop sins 2>/dev/null || true; echo %s | base64 -d > /etc/systemd/system/sins.service && systemctl daemon-reload 2>/dev/null || true", serviceB64)
+	serviceCmd := fmt.Sprintf("systemctl stop sins || true; echo %s | base64 -d > /etc/systemd/system/sins.service && systemctl daemon-reload || true", serviceB64)
 	output, exitCode := a.SSHService.Execute(serviceCmd, nil, true)
 	if exitCode != nil && *exitCode != 0 {
 		libs.GetLogger("configure_sins_service").Printf("Failed to create SiNS service file: %s", output)

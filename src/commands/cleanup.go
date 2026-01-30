@@ -49,9 +49,7 @@ func (c *Cleanup) Run() error {
 			os.Exit(1)
 		}
 	}()
-	logger.Info("==================================================")
-	logger.Info("Cleaning Up Lab Environment")
-	logger.Info("==================================================")
+	logger.InfoBanner("Cleaning Up Lab Environment")
 	logger.Info("Destroying ALL containers and templates...")
 	if !c.lxcService.Connect() {
 		logger.Error("Failed to connect to LXC host %s", c.cfg.LXCHost())

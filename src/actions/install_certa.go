@@ -128,7 +128,7 @@ func (a *InstallCertAAction) Execute() bool {
 	pctService := services.NewPCTService(lxcService)
 
 	// Check if kubectl is available
-	kubectlCheckCmd := "command -v kubectl >/dev/null 2>&1 && echo installed || echo not_installed"
+	kubectlCheckCmd := "command -v kubectl  && echo installed || echo not_installed"
 	kubectlCheck, _ := pctService.Execute(controlID, kubectlCheckCmd, nil)
 	if strings.Contains(kubectlCheck, "not_installed") {
 		libs.GetLogger("install_certa").Printf("Installing kubectl...")
@@ -156,7 +156,7 @@ func (a *InstallCertAAction) Execute() bool {
 	// Create database secret
 	libs.GetLogger("install_certa").Printf("Creating database secret...")
 	secretName := "certa-db-secret"
-	secretExistsCmd := fmt.Sprintf("kubectl get secret %s -n %s >/dev/null 2>&1 && echo exists || echo not_exists", secretName, namespace)
+	secretExistsCmd := fmt.Sprintf("kubectl get secret %s -n %s  && echo exists || echo not_exists", secretName, namespace)
 	secretExists, _ := pctService.Execute(controlID, secretExistsCmd, nil)
 	if strings.Contains(secretExists, "exists") {
 		deleteSecretCmd := fmt.Sprintf("kubectl delete secret %s -n %s", secretName, namespace)
@@ -177,7 +177,7 @@ func (a *InstallCertAAction) Execute() bool {
 	// Create ConfigMap for CertA configuration
 	libs.GetLogger("install_certa").Printf("Creating ConfigMap for CertA configuration...")
 	configMapName := "certa-config"
-	configMapExistsCmd := fmt.Sprintf("kubectl get configmap %s -n %s >/dev/null 2>&1 && echo exists || echo not_exists", configMapName, namespace)
+	configMapExistsCmd := fmt.Sprintf("kubectl get configmap %s -n %s  && echo exists || echo not_exists", configMapName, namespace)
 	configMapExists, _ := pctService.Execute(controlID, configMapExistsCmd, nil)
 	if strings.Contains(configMapExists, "exists") {
 		deleteConfigMapCmd := fmt.Sprintf("kubectl delete configmap %s -n %s", configMapName, namespace)
@@ -306,7 +306,7 @@ kubectl apply -f /tmp/certa-service.yaml && rm -f /tmp/certa-service.yaml`, serv
 	certaReady := false
 	for waitTime < maxWait {
 		// Check if pods are running and ready
-		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app=certa --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' 2>&1", namespace)
+		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app=certa --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}'", namespace)
 		timeout = 30
 		podsOutput, podsExit := pctService.Execute(controlID, podsCheckCmd, &timeout)
 		readyCount := 0
@@ -327,7 +327,7 @@ kubectl apply -f /tmp/certa-service.yaml && rm -f /tmp/certa-service.yaml`, serv
 	if !certaReady {
 		libs.GetLogger("install_certa").Printf("CertA not ready after %d seconds", maxWait)
 		// Check final status for debugging
-		finalCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app=certa -o wide 2>&1", namespace)
+		finalCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app=certa -o wide", namespace)
 		timeout = 30
 		finalOutput, _ := pctService.Execute(controlID, finalCheckCmd, &timeout)
 		if finalOutput != "" {

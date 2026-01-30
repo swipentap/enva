@@ -113,6 +113,7 @@ type ServicesConfig struct {
 	Rancher      *ServiceConfig      `yaml:"rancher,omitempty"`
 	Longhorn     *ServiceConfig      `yaml:"longhorn,omitempty"`
 	CockroachDB  *ServiceConfig      `yaml:"cockroachdb,omitempty"`
+	SonarQube    *ServiceConfig      `yaml:"sonarqube,omitempty"`
 	GitHubRunner *GitHubRunnerConfig `yaml:"github_runner,omitempty"`
 	CertA        *CertAConfig        `yaml:"certa,omitempty"`
 }

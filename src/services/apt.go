@@ -89,7 +89,7 @@ func (a *APTService) Autoremove() (string, *int) {
 func (a *APTService) WaitForLock() bool {
 	maxAttempts := a.lockWait / 5
 	for i := 0; i < maxAttempts; i++ {
-		cmd := "lsof /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock 2>&1 || echo 'no_lock'"
+		cmd := "lsof /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock || echo 'no_lock'"
 		output, _ := a.ssh.Execute(cmd, nil)
 		if strings.Contains(output, "no_lock") {
 			return true

@@ -123,7 +123,7 @@ func (a *ConfigureHaproxyAction) Execute() bool {
 			if a.Cfg.Domain != nil && *a.Cfg.Domain != "" {
 				domain = fmt.Sprintf("*.%s", *a.Cfg.Domain)
 			}
-			generateCertCmd := fmt.Sprintf(`cd /tmp && openssl req -x509 -newkey rsa:2048 -keyout haproxy.key -out haproxy.crt -days 365 -nodes -subj "/CN=%s" >/dev/null 2>&1 && cat haproxy.key haproxy.crt > %s && chmod 644 %s && rm -f haproxy.key haproxy.crt`, domain, certPath, certPath)
+			generateCertCmd := fmt.Sprintf(`cd /tmp && openssl req -x509 -newkey rsa:2048 -keyout haproxy.key -out haproxy.crt -days 365 -nodes -subj "/CN=%s"  && cat haproxy.key haproxy.crt > %s && chmod 644 %s && rm -f haproxy.key haproxy.crt`, domain, certPath, certPath)
 			certOutput, certExitCode := a.SSHService.Execute(generateCertCmd, nil, true) // sudo=True
 			if certExitCode != nil && *certExitCode != 0 {
 				libs.GetLogger("configure_haproxy").Warning("Failed to generate SSL certificate: %s", certOutput)
@@ -406,7 +406,7 @@ listen stats
 	}
 
 	// Reload HAProxy to apply new configuration
-	reloadCmd := "systemctl reload haproxy 2>&1 || systemctl restart haproxy 2>&1"
+	reloadCmd := "systemctl reload haproxy || systemctl restart haproxy"
 	reloadOutput, reloadExit := a.SSHService.Execute(reloadCmd, nil, true) // sudo=True
 	if reloadExit != nil && *reloadExit != 0 {
 		libs.GetLogger("configure_haproxy").Warning("Failed to reload HAProxy: %s", reloadOutput)

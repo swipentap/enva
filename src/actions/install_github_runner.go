@@ -71,8 +71,8 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 		githubToken = os.Getenv("ENVA_GITHUB_TOKEN")
 	}
 	if githubToken == "" {
-		libs.GetLogger("install_github_runner").Printf("GitHub token not configured (check config or ENVA_GITHUB_TOKEN environment variable)")
-		return false
+		libs.GetLogger("install_github_runner").Printf("GitHub token not configured (check config or ENVA_GITHUB_TOKEN environment variable), skipping installation")
+		return true
 	}
 
 	organization := ""
@@ -80,8 +80,8 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 		organization = *runnerCfg.Organization
 	}
 	if organization == "" {
-		libs.GetLogger("install_github_runner").Printf("GitHub organization not configured")
-		return false
+		libs.GetLogger("install_github_runner").Printf("GitHub organization not configured, skipping installation")
+		return true
 	}
 
 	replicas := 1
@@ -117,7 +117,7 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	pctService := services.NewPCTService(lxcService)
 
 	// Check if kubectl is available
-	kubectlCheckCmd := "command -v kubectl >/dev/null 2>&1 && echo installed || echo not_installed"
+	kubectlCheckCmd := "command -v kubectl  && echo installed || echo not_installed"
 	kubectlCheck, _ := pctService.Execute(controlID, kubectlCheckCmd, nil)
 	if strings.Contains(kubectlCheck, "not_installed") {
 		libs.GetLogger("install_github_runner").Printf("Installing kubectl...")
@@ -133,7 +133,7 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	}
 
 	// Check if Helm is installed
-	helmCheckCmd := "export PATH=/usr/local/bin:$PATH && command -v helm >/dev/null 2>&1 && echo installed || echo not_installed"
+	helmCheckCmd := "export PATH=/usr/local/bin:$PATH && command -v helm  && echo installed || echo not_installed"
 	helmCheck, _ := pctService.Execute(controlID, helmCheckCmd, nil)
 	if strings.Contains(helmCheck, "not_installed") {
 		libs.GetLogger("install_github_runner").Printf("Installing Helm...")
@@ -155,7 +155,7 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 			libs.GetLogger("install_github_runner").Printf("Helm installed successfully using alternative method")
 		}
 		// Verify helm installation
-		verifyHelmCmd := "export PATH=/usr/local/bin:$PATH && command -v helm >/dev/null 2>&1 && echo installed || echo not_installed"
+		verifyHelmCmd := "export PATH=/usr/local/bin:$PATH && command -v helm  && echo installed || echo not_installed"
 		verifyHelmOutput, _ := pctService.Execute(controlID, verifyHelmCmd, nil)
 		if strings.Contains(verifyHelmOutput, "not_installed") {
 			// Also check if helm binary exists directly
@@ -207,7 +207,7 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	// Helm chart expects secret named "controller-manager" with key "github_token"
 	libs.GetLogger("install_github_runner").Printf("Creating GitHub authenticator secret...")
 	authSecretName := "controller-manager"
-	authSecretExistsCmd := fmt.Sprintf("kubectl get secret %s -n %s >/dev/null 2>&1 && echo exists || echo not_exists", authSecretName, namespace)
+	authSecretExistsCmd := fmt.Sprintf("kubectl get secret %s -n %s  && echo exists || echo not_exists", authSecretName, namespace)
 	authSecretExists, _ := pctService.Execute(controlID, authSecretExistsCmd, nil)
 	if strings.Contains(authSecretExists, "exists") {
 		deleteAuthSecretCmd := fmt.Sprintf("kubectl delete secret %s -n %s", authSecretName, namespace)
@@ -251,12 +251,12 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 
 	// Check if webhook certificate secret exists, create it if missing (required for pods to start)
 	libs.GetLogger("install_github_runner").Printf("Checking for webhook certificate secret...")
-	secretCheckCmd := fmt.Sprintf("kubectl get secret actions-runner-controller-serving-cert -n %s >/dev/null 2>&1 && echo exists || echo missing", namespace)
+	secretCheckCmd := fmt.Sprintf("kubectl get secret actions-runner-controller-serving-cert -n %s  && echo exists || echo missing", namespace)
 	secretStatus, _ := pctService.Execute(controlID, secretCheckCmd, nil)
 	if strings.Contains(secretStatus, "missing") {
 		libs.GetLogger("install_github_runner").Printf("Webhook certificate secret missing, creating self-signed certificate...")
 		// Check if cert-manager is available
-		certManagerCheckCmd := "kubectl get crd certificates.cert-manager.io >/dev/null 2>&1 && echo exists || echo missing"
+		certManagerCheckCmd := "kubectl get crd certificates.cert-manager.io  && echo exists || echo missing"
 		certManagerStatus, _ := pctService.Execute(controlID, certManagerCheckCmd, nil)
 		if strings.Contains(certManagerStatus, "exists") {
 			libs.GetLogger("install_github_runner").Printf("cert-manager detected, waiting for it to create the secret...")
@@ -281,7 +281,7 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 		if strings.Contains(secretStatus, "missing") {
 			libs.GetLogger("install_github_runner").Printf("Creating self-signed webhook certificate...")
 			// Check if openssl is available
-			opensslCheckCmd := "command -v openssl >/dev/null 2>&1 && echo installed || echo not_installed"
+			opensslCheckCmd := "command -v openssl  && echo installed || echo not_installed"
 			opensslCheck, _ := pctService.Execute(controlID, opensslCheckCmd, nil)
 			if strings.Contains(opensslCheck, "not_installed") {
 				libs.GetLogger("install_github_runner").Printf("Installing openssl...")
@@ -323,8 +323,8 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 			libs.GetLogger("install_github_runner").Printf("Updating webhook configuration caBundle...")
 			updateCaBundleCmd := fmt.Sprintf(`set -e && export PATH=/usr/local/bin:$PATH && \
 				CA_BUNDLE=$(kubectl get secret actions-runner-controller-serving-cert -n %s -o jsonpath='{.data.tls\.crt}') && \
-				(kubectl patch validatingwebhookconfiguration actions-runner-controller-validating-webhook-configuration --type='json' -p="[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\":\"$CA_BUNDLE\"}]" 2>&1 || true) && \
-				(kubectl patch mutatingwebhookconfiguration actions-runner-controller-mutating-webhook-configuration --type='json' -p="[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\":\"$CA_BUNDLE\"}]" 2>&1 || true)`, namespace)
+				(kubectl patch validatingwebhookconfiguration actions-runner-controller-validating-webhook-configuration --type='json' -p="[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\":\"$CA_BUNDLE\"}]" || true) && \
+				(kubectl patch mutatingwebhookconfiguration actions-runner-controller-mutating-webhook-configuration --type='json' -p="[{\"op\": \"replace\", \"path\": \"/webhooks/0/clientConfig/caBundle\", \"value\":\"$CA_BUNDLE\"}]" || true)`, namespace)
 			timeout = 30
 			caBundleOutput, _ := pctService.Execute(controlID, updateCaBundleCmd, &timeout)
 			if caBundleOutput != "" && !strings.Contains(caBundleOutput, "NotFound") {
@@ -342,12 +342,12 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	arcReady := false
 	for waitTimeARC < maxWaitARC {
 		// Check if pods exist and their status
-		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller -o jsonpath='{range .items[*]}{.metadata.name}{\" \"}{.status.phase}{\" \"}{.status.containerStatuses[*].ready}{\"\\n\"}{end}' 2>&1", namespace)
+		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller -o jsonpath='{range .items[*]}{.metadata.name}{\" \"}{.status.phase}{\" \"}{.status.containerStatuses[*].ready}{\"\\n\"}{end}'", namespace)
 		timeout = 30
 		podsOutput, podsExit := pctService.Execute(controlID, podsCheckCmd, &timeout)
 
 		// Check for ready pods
-		readyPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' 2>&1", namespace)
+		readyPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}'", namespace)
 		readyOutput, _ := pctService.Execute(controlID, readyPodsCmd, &timeout)
 		readyCount := strings.Count(readyOutput, "True")
 
@@ -364,13 +364,13 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 				// Check for specific issues
 				if waitTimeARC%60 == 0 && waitTimeARC > 0 {
 					// Every minute, check pod events for issues
-					describeCmd := fmt.Sprintf("kubectl get events -n %s --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | tail -5 2>&1", namespace)
+					describeCmd := fmt.Sprintf("kubectl get events -n %s --field-selector involvedObject.kind=Pod --sort-by='.lastTimestamp' | tail -5", namespace)
 					eventsOutput, _ := pctService.Execute(controlID, describeCmd, &timeout)
 					if eventsOutput != "" {
 						libs.GetLogger("install_github_runner").Printf("Recent pod events: %s", eventsOutput)
 					}
 					// Check for missing secrets
-					secretCheckCmd := fmt.Sprintf("kubectl get secret actions-runner-controller-serving-cert -n %s >/dev/null 2>&1 && echo exists || echo missing", namespace)
+					secretCheckCmd := fmt.Sprintf("kubectl get secret actions-runner-controller-serving-cert -n %s  && echo exists || echo missing", namespace)
 					secretStatus, _ := pctService.Execute(controlID, secretCheckCmd, nil)
 					if strings.Contains(secretStatus, "missing") {
 						libs.GetLogger("install_github_runner").Printf("Warning: serving-cert secret missing, waiting for webhook setup...")
@@ -390,14 +390,14 @@ func (a *InstallGithubRunnerAction) Execute() bool {
 	}
 	if !arcReady {
 		libs.GetLogger("install_github_runner").Printf("Actions Runner Controller not ready after %d seconds", maxWaitARC)
-		debugCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller -o wide 2>&1", namespace)
+		debugCmd := fmt.Sprintf("kubectl get pods -n %s -l app.kubernetes.io/name=actions-runner-controller -o wide", namespace)
 		timeout = 30
 		debugOutput, _ := pctService.Execute(controlID, debugCmd, &timeout)
 		if debugOutput != "" {
 			libs.GetLogger("install_github_runner").Printf("ARC pods status: %s", debugOutput)
 		}
 		// Get detailed pod description for the first pod
-		describeCmd := fmt.Sprintf("kubectl describe pod -n %s -l app.kubernetes.io/name=actions-runner-controller 2>&1 | grep -A 20 'Events:'", namespace)
+		describeCmd := fmt.Sprintf("kubectl describe pod -n %s -l app.kubernetes.io/name=actions-runner-controller | grep -A 20 'Events:'", namespace)
 		describeOutput, _ := pctService.Execute(controlID, describeCmd, &timeout)
 		if describeOutput != "" {
 			libs.GetLogger("install_github_runner").Printf("Pod events: %s", describeOutput)
@@ -462,7 +462,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 	runnersReady := false
 	for waitTimeRunners < maxWaitRunners {
 		// Check if runner pods are running - ARC creates pods with specific labels
-		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' 2>&1", namespace, runnerDeploymentName)
+		podsCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --field-selector=status.phase=Running -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}'", namespace, runnerDeploymentName)
 		timeout = 30
 		podsOutput, podsExit := pctService.Execute(controlID, podsCheckCmd, &timeout)
 		readyCount := 0
@@ -483,7 +483,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 	if !runnersReady {
 		libs.GetLogger("install_github_runner").Printf("GitHub runners not ready after %d seconds", maxWaitRunners)
 		// Check final status for debugging
-		finalCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s -o wide 2>&1", namespace, runnerDeploymentName)
+		finalCheckCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s -o wide", namespace, runnerDeploymentName)
 		timeout = 30
 		finalOutput, _ := pctService.Execute(controlID, finalCheckCmd, &timeout)
 		if finalOutput != "" {
@@ -498,7 +498,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 	timeout = 30
 	
 	// Check if we have excess pods
-	totalPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers 2>&1 | wc -l", namespace, runnerDeploymentName)
+	totalPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers | wc -l", namespace, runnerDeploymentName)
 	totalPodsOutput, _ := pctService.Execute(controlID, totalPodsCmd, nil)
 	totalPodsStr := strings.TrimSpace(totalPodsOutput)
 	totalPods := 0
@@ -510,7 +510,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 		libs.GetLogger("install_github_runner").Printf("Found %d runner pods, but desired is %d. Fixing pod count...", totalPods, replicas)
 		
 		// Ensure RunnerDeployment spec has correct replicas
-		patchCmd := fmt.Sprintf("kubectl patch runnerdeployment %s -n %s --type=merge -p '{\"spec\":{\"replicas\":%d}}' 2>&1", runnerDeploymentName, namespace, replicas)
+		patchCmd := fmt.Sprintf("kubectl patch runnerdeployment %s -n %s --type=merge -p '{\"spec\":{\"replicas\":%d}}'", runnerDeploymentName, namespace, replicas)
 		patchOutput, patchExit := pctService.Execute(controlID, patchCmd, &timeout)
 		if patchExit != nil && *patchExit != 0 {
 			libs.GetLogger("install_github_runner").Printf("Warning: Failed to patch RunnerDeployment: %s", patchOutput)
@@ -522,7 +522,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 		time.Sleep(10 * time.Second)
 		
 		// Get list of pods and delete excess ones (keep the newest ones)
-		getPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers --sort-by=.metadata.creationTimestamp 2>&1", namespace, runnerDeploymentName)
+		getPodsCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers --sort-by=.metadata.creationTimestamp", namespace, runnerDeploymentName)
 		podsListOutput, _ := pctService.Execute(controlID, getPodsCmd, nil)
 		podLines := strings.Split(strings.TrimSpace(podsListOutput), "\n")
 		
@@ -531,7 +531,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 			podsToDelete := podLines[:len(podLines)-replicas]
 			for _, podLine := range podsToDelete {
 				if podName := strings.Fields(podLine)[0]; podName != "" {
-					deleteCmd := fmt.Sprintf("kubectl delete pod %s -n %s 2>&1", podName, namespace)
+					deleteCmd := fmt.Sprintf("kubectl delete pod %s -n %s", podName, namespace)
 					deleteOutput, _ := pctService.Execute(controlID, deleteCmd, &timeout)
 					if deleteOutput != "" && !strings.Contains(deleteOutput, "NotFound") {
 						libs.GetLogger("install_github_runner").Printf("Deleted excess pod: %s", podName)
@@ -544,7 +544,7 @@ kubectl apply -f /tmp/runner-deployment.yaml && rm -f /tmp/runner-deployment.yam
 			time.Sleep(15 * time.Second)
 			
 			// Verify final count
-			finalCountCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers 2>&1 | wc -l", namespace, runnerDeploymentName)
+			finalCountCmd := fmt.Sprintf("kubectl get pods -n %s -l runner-deployment-name=%s --no-headers | wc -l", namespace, runnerDeploymentName)
 			finalCountOutput, _ := pctService.Execute(controlID, finalCountCmd, nil)
 			finalCountStr := strings.TrimSpace(finalCountOutput)
 			if finalCount, err := strconv.Atoi(finalCountStr); err == nil {

@@ -55,6 +55,6 @@ func (s *Shell) Execute() string {
 	if argsQuoted != "" {
 		cmd += " " + argsQuoted
 	}
-	return cmd + " 2>&1"
+	return cmd + ""
 }
 

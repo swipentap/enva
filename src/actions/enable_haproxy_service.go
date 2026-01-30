@@ -35,7 +35,7 @@ func (a *EnableHaproxyServiceAction) Execute() bool {
 		libs.GetLogger("enable_haproxy_service").Error("SSH service not initialized")
 		return false
 	}
-	validateCmd := "haproxy -c -f /etc/haproxy/haproxy.cfg 2>&1"
+	validateCmd := "haproxy -c -f /etc/haproxy/haproxy.cfg"
 	validateOutput, exitCode := a.SSHService.Execute(validateCmd, nil, true) // sudo=True
 	if exitCode == nil || *exitCode != 0 {
 		libs.GetLogger("enable_haproxy_service").Error("HAProxy config validation command failed")
@@ -55,7 +55,7 @@ func (a *EnableHaproxyServiceAction) Execute() bool {
 				libs.GetLogger("enable_haproxy_service").Error("restart haproxy service output: %s", lines[len(lines)-1])
 			}
 		}
-		statusCmd := "systemctl status haproxy.service --no-pager -l 2>&1 | head -20"
+		statusCmd := "systemctl status haproxy.service --no-pager -l | head -20"
 		statusOutput, _ := a.SSHService.Execute(statusCmd, nil, true) // sudo=True
 		libs.GetLogger("enable_haproxy_service").Error("HAProxy service restart failed. Status: %s", statusOutput)
 		// Even if restart failed, check if service is actually running (matching Python behavior)

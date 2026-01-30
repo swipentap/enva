@@ -46,6 +46,7 @@ func init() {
 	RegisterAction("k3s installation", NewInstallK3sAction)
 	RegisterAction("glusterfs server installation", NewInstallGlusterfsAction)
 	RegisterAction("install cockroachdb", NewInstallCockroachdbAction)
+	RegisterAction("install sonarqube", NewInstallSonarqubeAction)
 	RegisterAction("install github runner", NewInstallGithubRunnerAction)
 	RegisterAction("install certa", NewInstallCertAAction)
 	RegisterAction("install k3s node watcher", NewInstallK3sNodeWatcherAction)

@@ -91,6 +91,7 @@ templates:
       cores: 4
       rootfs_size: 20
     actions:
+      - locale configuration
       - apt cache proxy configuration
 #      - AppArmor parser stub
       - apt sources fix
@@ -114,7 +115,6 @@ ct:
       rootfs_size: 20
     actions:
       - cloud-init wait
-      - AppArmor parser stub
       - disable automatic apt units
       - systemd sysctl override
       - apt-cacher-ng installation
@@ -140,7 +140,11 @@ ct:
       - postgresql installation
       - postgresql service configuration
       - postgresql files configuration
-      - postgresql password setup
+      - name: postgresql password setup
+        properties:
+          username: postgres
+          password: postgres
+          database: postgres
   - name: haproxy
     id: 17
     ip: 17  # Last octet only
@@ -159,7 +163,11 @@ ct:
     actions:
       - cloud-init wait
       - haproxy installation
-      - haproxy configuration
+      - name: haproxy configuration
+        properties:
+          http_port: 80
+          https_port: 443
+          stats_port: 8404
       - haproxy systemd override
       - haproxy service enablement
   - name: dns
@@ -332,9 +340,27 @@ kubernetes:
     - id: 13
     - id: 14
   actions:
-    - install cockroachdb
+    - name: install cockroachdb
+      properties:
+        version: "v25.2.4"
+        nodes: 3
+        storage: "10Gi"
+        sql_port: 32657
+        http_port: 30080
+        grpc_port: 32658
+        password: "root123"
+    - install sonarqube
     - install github runner
-    - install certa
+   # - name: install certa
+   #   properties:
+   #     image: "judyandiealvarez/certa:latest"
+   #     namespace: "certa"
+   #     replicas: 1
+   #     database_host: "10.11.2.18"
+   #     database_port: 5432
+   #     database_name: "certa"
+   #     database_user: "postgres"
+   #     database_password: "postgres"
     - install k3s node watcher
 
 # Script timeouts (in seconds)
@@ -354,43 +380,35 @@ users:
 # Network services
 services:
   apt_cache:
-    port: 80
-    name: apt-cache
+    ports:
+      - name: apt-cache
+        port: 80
+        type: http
   postgresql:
-    port: 5432
-    username: postgres
-    password: postgres
-    database: postgres
-    name: pgsqlns
-  haproxy:
-    http_port: 80
-    https_port: 443
-    stats_port: 8404
-    name: haproxy
+    ports:
+      - name: pgsqlns
+        port: 5432
+        type: tcp
   rancher:
-    port: 30443
-    image: "rancher/rancher:latest"
-    name: rancher
+    ports:
+      - name: rancher
+        port: 30443
+        type: https
   cockroachdb:
-    version: "v25.2.4"
-    nodes: 3
-    storage: "10Gi"
-    sql_port: 32657
-    http_port: 30080
-    grpc_port: 32658
-    password: "root123"
-    name: db
+    ports:
+      - name: db
+        port: 32657
+        type: tcp
+  sonarqube:
+    ports:
+      - name: sonarqube
+        port: 30091
+        type: http
   certa:
-    image: "judyandiealvarez/certa:latest"
-    port: 30081
-    namespace: "certa"
-    replicas: 1
-    name: "certa"
-    database_host: "10.11.2.18"
-    database_port: 5432
-    database_name: "certa"
-    database_user: "postgres"
-    database_password: "postgres"
+    ports:
+      - name: certa
+        port: 30081
+        type: http
 
 # DNS servers
 dns:

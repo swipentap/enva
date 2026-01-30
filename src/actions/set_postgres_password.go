@@ -40,7 +40,7 @@ func (a *SetPostgresPasswordAction) Execute() bool {
 			password = p
 		}
 	}
-	command := fmt.Sprintf("sudo -n -u postgres psql -c \"ALTER USER postgres WITH PASSWORD '%s';\" 2>&1", password)
+	command := fmt.Sprintf("sudo -n -u postgres psql -c \"ALTER USER postgres WITH PASSWORD '%s';\"", password)
 	output, exitCode := a.SSHService.Execute(command, nil)
 	if exitCode != nil && *exitCode != 0 {
 		libs.GetLogger("set_postgres_password").Printf("set postgres password failed with exit code %d", *exitCode)

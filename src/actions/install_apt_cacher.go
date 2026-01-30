@@ -81,14 +81,14 @@ func (a *InstallAptCacherAction) Execute() bool {
 		if checkExit != nil && *checkExit == 0 && cli.ParseIsInstalled(checkOutput) {
 			libs.GetLogger("install_apt_cacher").Warning("apt-cacher-ng binary exists despite installation error, checking service unit...")
 			// Still need to verify service unit exists even if binary exists
-			serviceCheckCmd := "systemctl list-unit-files apt-cacher-ng.service 2>&1 | grep -q apt-cacher-ng.service && echo 'exists' || echo 'missing'"
+			serviceCheckCmd := "systemctl list-unit-files apt-cacher-ng.service | grep -q apt-cacher-ng.service && echo 'exists' || echo 'missing'"
 			serviceCheck, serviceExit := a.SSHService.Execute(serviceCheckCmd, nil)
 			if serviceExit != nil && *serviceExit == 0 && strings.Contains(serviceCheck, "exists") {
 				libs.GetLogger("install_apt_cacher").Warning("apt-cacher-ng service unit exists, treating as success")
 				return true
 			}
 			libs.GetLogger("install_apt_cacher").Error("apt-cacher-ng service unit not found despite binary existing. Check: %s", serviceCheck)
-			dpkgCheck := "dpkg -l | grep apt-cacher-ng 2>&1"
+			dpkgCheck := "dpkg -l | grep apt-cacher-ng"
 			dpkgOutput, _ := a.SSHService.Execute(dpkgCheck, nil)
 			libs.GetLogger("install_apt_cacher").Error("dpkg status: %s", dpkgOutput)
 			return false
@@ -105,11 +105,11 @@ func (a *InstallAptCacherAction) Execute() bool {
 	}
 	
 	// Verify service unit exists
-	serviceCheckCmd := "systemctl list-unit-files apt-cacher-ng.service 2>&1 | grep -q apt-cacher-ng.service && echo 'exists' || echo 'missing'"
+	serviceCheckCmd := "systemctl list-unit-files apt-cacher-ng.service | grep -q apt-cacher-ng.service && echo 'exists' || echo 'missing'"
 	serviceCheck, serviceExit := a.SSHService.Execute(serviceCheckCmd, nil)
 	if serviceExit == nil || *serviceExit != 0 || !strings.Contains(serviceCheck, "exists") {
 		libs.GetLogger("install_apt_cacher").Error("apt-cacher-ng service unit not found after installation. Check: %s", serviceCheck)
-		dpkgCheck := "dpkg -l | grep apt-cacher-ng 2>&1"
+		dpkgCheck := "dpkg -l | grep apt-cacher-ng"
 		dpkgOutput, _ := a.SSHService.Execute(dpkgCheck, nil)
 		libs.GetLogger("install_apt_cacher").Error("dpkg status: %s", dpkgOutput)
 		return false

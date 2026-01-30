@@ -50,7 +50,7 @@ func (u *User) CheckExists() string {
 	if u.username == "" {
 		panic("Username must be set")
 	}
-	return fmt.Sprintf("id -u %s >/dev/null", quote(u.username))
+	return fmt.Sprintf("id -u %s", quote(u.username))
 }
 
 // Add generates command to add a user

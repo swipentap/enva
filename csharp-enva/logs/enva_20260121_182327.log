@@ -1,0 +1,63 @@
+﻿2026-01-21 18:23:27 - main                      - INFO - === Redeploy: Cleanup and Deploy ===
+2026-01-21 18:23:27 - main                      - INFO - 
+[1/2] Running cleanup...
+2026-01-21 18:23:27 - cleanup                   - INFO - === Cleaning Up Lab Environment ===
+2026-01-21 18:23:27 - cleanup                   - INFO - Destroying ALL containers and templates...
+2026-01-21 18:23:37 - ssh                       - INFO - Failed to establish SSH connection to root@10.11.5.4: Connection failed to establish within 10000 milliseconds.
+2026-01-21 18:23:37 - cleanup                   - INFO - Error during cleanup: Failed to connect to LXC host root@10.11.5.4
+2026-01-21 18:23:37 - main                      - INFO - 
+[2/2] Running deploy...
+2026-01-21 18:23:37 - deploy                    - INFO - 
+2026-01-21 18:23:37 - deploy                    - INFO - Deploy plan (total 47 steps, running 1-47):
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 1] RUN  apt-cache: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 2] RUN  apt-cache: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 3] RUN  apt-cache: disable automatic apt units
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 4] RUN  apt-cache: systemd sysctl override
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 5] RUN  apt-cache: apt-cacher-ng installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 6] RUN  apt-cache: apt-cacher-ng port configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 7] RUN  apt-cache: apt-cacher-ng service enablement
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 8] RUN  ubuntu-tmpl: create template
+2026-01-21 18:23:37 - deploy                    - INFO -   [ 9] RUN  ubuntu-tmpl: locale configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [10] RUN  ubuntu-tmpl: apt cache proxy configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [11] RUN  ubuntu-tmpl: apt sources fix
+2026-01-21 18:23:37 - deploy                    - INFO -   [12] RUN  ubuntu-tmpl: system upgrade
+2026-01-21 18:23:37 - deploy                    - INFO -   [13] RUN  ubuntu-tmpl: openssh-server installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [14] RUN  ubuntu-tmpl: SSH service enablement
+2026-01-21 18:23:37 - deploy                    - INFO -   [15] RUN  ubuntu-tmpl: base tools installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [16] RUN  ubuntu-tmpl: template cleanup
+2026-01-21 18:23:37 - deploy                    - INFO -   [17] RUN  ubuntu-tmpl: template archive creation
+2026-01-21 18:23:37 - deploy                    - INFO -   [18] RUN  haproxy: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [19] RUN  haproxy: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [20] RUN  haproxy: haproxy installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [21] RUN  haproxy: haproxy configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [22] RUN  haproxy: haproxy systemd override
+2026-01-21 18:23:37 - deploy                    - INFO -   [23] RUN  haproxy: haproxy service enablement
+2026-01-21 18:23:37 - deploy                    - INFO -   [24] RUN  k3s-control: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [25] RUN  k3s-control: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [26] RUN  k3s-control: lxc sysctl access configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [27] RUN  k3s-control: k3s installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [28] RUN  k3s-control: install k3s node watcher
+2026-01-21 18:23:37 - deploy                    - INFO -   [29] RUN  k3s-worker-1: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [30] RUN  k3s-worker-1: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [31] RUN  k3s-worker-1: lxc sysctl access configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [32] RUN  k3s-worker-1: k3s installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [33] RUN  k3s-worker-1: glusterfs server installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [34] RUN  k3s-worker-2: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [35] RUN  k3s-worker-2: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [36] RUN  k3s-worker-2: lxc sysctl access configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [37] RUN  k3s-worker-2: k3s installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [38] RUN  k3s-worker-2: glusterfs server installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [39] RUN  k3s-worker-3: create container
+2026-01-21 18:23:37 - deploy                    - INFO -   [40] RUN  k3s-worker-3: cloud-init wait
+2026-01-21 18:23:37 - deploy                    - INFO -   [41] RUN  k3s-worker-3: lxc sysctl access configuration
+2026-01-21 18:23:37 - deploy                    - INFO -   [42] RUN  k3s-worker-3: k3s installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [43] RUN  k3s-worker-3: glusterfs server installation
+2026-01-21 18:23:37 - deploy                    - INFO -   [44] RUN  kubernetes: setup kubernetes
+2026-01-21 18:23:37 - deploy                    - INFO -   [45] RUN  glusterfs: setup glusterfs
+2026-01-21 18:23:37 - deploy                    - INFO -   [46] RUN  kubernetes: install rancher
+2026-01-21 18:23:37 - deploy                    - INFO -   [47] RUN  kubernetes: install argocd
+2026-01-21 18:23:37 - deploy                    - INFO - === Executing Deployment ===
+2026-01-21 18:23:37 - deploy                    - INFO - === [Overall: 2%] [Step: 1/47] Executing: apt-cache - create container ===
+2026-01-21 18:23:47 - ssh                       - INFO - Failed to establish SSH connection to root@10.11.5.4: Connection failed to establish within 10000 milliseconds.
+2026-01-21 18:23:47 - create_container          - INFO - Failed to connect to LXC host root@10.11.5.4
+2026-01-21 18:23:47 - deploy                    - INFO - Error during deployment: Failed to create container: apt-cache

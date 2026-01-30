@@ -85,6 +85,6 @@ func (c *Curl) Download() string {
 	if len(flags) > 0 {
 		flagStr = strings.Join(flags, " ")
 	}
-	return fmt.Sprintf("curl %s %s 2>&1", flagStr, quote(c.url))
+	return fmt.Sprintf("curl %s %s", flagStr, quote(c.url))
 }
 

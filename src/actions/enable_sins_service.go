@@ -55,7 +55,7 @@ func (a *EnableSinsServiceAction) Execute() bool {
 			time.Sleep(2 * time.Second)
 		}
 		// Kill whatever is using port 53 (except sins itself)
-		killPort53Cmd := "fuser -k 53/udp 53/tcp 2>/dev/null || true"
+		killPort53Cmd := "fuser -k 53/udp 53/tcp || true"
 		a.SSHService.Execute(killPort53Cmd, nil, true) // sudo=True
 		time.Sleep(1 * time.Second)
 	}
@@ -115,7 +115,7 @@ func (a *EnableSinsServiceAction) Execute() bool {
 			if strings.Contains(strings.ToLower(journalOutput2), "address already in use") || strings.Contains(strings.ToLower(journalOutput2), "port") || strings.Contains(strings.ToLower(journalOutput2), "bind") {
 				libs.GetLogger("enable_sins_service").Printf("SiNS service cannot bind to port 53. Attempting to fix...")
 				// Kill whatever is using port 53
-				killPort53Cmd := "fuser -k 53/udp 53/tcp 2>/dev/null || true"
+				killPort53Cmd := "fuser -k 53/udp 53/tcp || true"
 				a.SSHService.Execute(killPort53Cmd, nil, true) // sudo=True
 				time.Sleep(2 * time.Second)
 				// Restart the service
@@ -185,7 +185,7 @@ func (a *EnableSinsServiceAction) Execute() bool {
 			return false
 		}
 	}
-	processCheckCmd := "pgrep -f 'sins\\.dll|^sins ' >/dev/null && echo running || echo not_running"
+	processCheckCmd := "pgrep -f 'sins\\.dll|^sins '  && echo running || echo not_running"
 	processOutput, _ := a.SSHService.Execute(processCheckCmd, nil, true) // sudo=True
 	if strings.Contains(processOutput, "running") {
 		// Even if process is running, verify it's listening on port 53

@@ -106,7 +106,7 @@ func (t *TemplateService) GetTemplatePath(templateName *string, cfg *libs.LabCon
 	}
 	// Find template file by name - search for files matching template name pattern (matching Python: ls -t {template_name}*.tar.zst)
 	templateNamePattern := fmt.Sprintf("%s*.tar.zst", templateCfg.Name)
-	findCmd := fmt.Sprintf("ls -t %s/%s 2>/dev/null | head -1 | xargs basename 2>/dev/null", templateDir, templateNamePattern)
+	findCmd := fmt.Sprintf("ls -t %s/%s | head -1 | xargs basename", templateDir, templateNamePattern)
 	templateFile, _ := t.lxc.Execute(findCmd, nil)
 	if templateFile != "" && strings.TrimSpace(templateFile) != "" {
 		return fmt.Sprintf("%s/%s", templateDir, strings.TrimSpace(templateFile))

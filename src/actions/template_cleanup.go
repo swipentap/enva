@@ -59,7 +59,7 @@ func (a *TemplateCleanupAction) Execute() bool {
 		}
 	}
 	// Clean apt cache
-	cleanCmd := "apt-get clean 2>&1"
+	cleanCmd := "apt-get clean"
 	output, exitCode := a.PCTService.Execute(containerIDInt, cleanCmd, nil)
 	if exitCode != nil && *exitCode != 0 {
 		libs.GetLogger("template_cleanup").Printf("Failed to clean apt cache: %s", output)

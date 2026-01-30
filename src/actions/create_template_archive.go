@@ -73,7 +73,7 @@ func (a *CreateTemplateArchiveAction) Execute() bool {
 	backupFile := waitForArchiveFile(lxcHost, containerID, templateDir, a.Cfg, lxcService, 120)
 	if backupFile == "" {
 		libs.GetLogger("create_template_archive").Printf("Template archive file not found after vzdump in directory %s", templateDir)
-		checkCmd := fmt.Sprintf("ls -la %s/*vzdump* 2>&1 | head -10", templateDir)
+		checkCmd := fmt.Sprintf("ls -la %s/*vzdump* | head -10", templateDir)
 		checkOutput, _ := lxcService.Execute(checkCmd, nil)
 		libs.GetLogger("create_template_archive").Printf("Files in template directory: %s", checkOutput)
 		return false
@@ -106,7 +106,7 @@ func (a *CreateTemplateArchiveAction) Execute() bool {
 	storageTemplateDir := a.Cfg.LXC.TemplateDir
 	storageTemplatePath := fmt.Sprintf("%s/%s", storageTemplateDir, finalTemplateName)
 	libs.GetLogger("create_template_archive").Printf("Moving template from %s to %s", backupFile, storageTemplatePath)
-	moveCmd := fmt.Sprintf("mv '%s' %s 2>&1", backupFile, storageTemplatePath)
+	moveCmd := fmt.Sprintf("mv '%s' %s", backupFile, storageTemplatePath)
 	moveOutput, _ := lxcService.Execute(moveCmd, nil)
 	if moveOutput != "" {
 		libs.GetLogger("create_template_archive").Printf("Move command output: %s", moveOutput)
@@ -114,7 +114,7 @@ func (a *CreateTemplateArchiveAction) Execute() bool {
 	libs.GetLogger("create_template_archive").Printf("Template moved to storage location: %s", storageTemplatePath)
 
 	// Update template list
-	pveamCmd := "pveam update 2>&1"
+	pveamCmd := "pveam update"
 	pveamOutput, _ := lxcService.Execute(pveamCmd, nil)
 	if pveamOutput == "" {
 		libs.GetLogger("create_template_archive").Printf("pveam update had issues")
@@ -123,9 +123,9 @@ func (a *CreateTemplateArchiveAction) Execute() bool {
 	// Cleanup other templates
 	libs.GetLogger("create_template_archive").Printf("Cleaning up other template archives...")
 	preservePatterns := strings.Join(a.Cfg.TemplateConfig.Preserve, " ")
-	cleanupCacheCmd := fmt.Sprintf("find %s -maxdepth 1 -type f -name '*.tar.zst' ! -name '%s' %s -delete 2>&1", templateDir, finalTemplateName, preservePatterns)
+	cleanupCacheCmd := fmt.Sprintf("find %s -maxdepth 1 -type f -name '*.tar.zst' ! -name '%s' %s -delete", templateDir, finalTemplateName, preservePatterns)
 	lxcService.Execute(cleanupCacheCmd, nil)
-	cleanupStorageCmd := fmt.Sprintf("find %s -maxdepth 1 -type f -name '*.tar.zst' ! -name '%s' %s ! -name 'ubuntu-24.10-standard_24.10-1_amd64.tar.zst' -delete 2>&1", storageTemplateDir, finalTemplateName, preservePatterns)
+	cleanupStorageCmd := fmt.Sprintf("find %s -maxdepth 1 -type f -name '*.tar.zst' ! -name '%s' %s ! -name 'ubuntu-24.10-standard_24.10-1_amd64.tar.zst' -delete", storageTemplateDir, finalTemplateName, preservePatterns)
 	lxcService.Execute(cleanupStorageCmd, nil)
 
 	// Destroy container after archive is created

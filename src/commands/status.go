@@ -31,9 +31,7 @@ func (s *Status) Run() error {
 		return fmt.Errorf("failed to connect to LXC host")
 	}
 	defer s.lxcService.Disconnect()
-	logger.Info("==================================================")
-	logger.Info("Lab Status")
-	logger.Info("==================================================")
+	logger.InfoBanner("Lab Status")
 	logger.Info("Containers:")
 	listCmd := cli.NewPCT().List()
 	result, _ := s.lxcService.Execute(listCmd, nil)
@@ -44,7 +42,7 @@ func (s *Status) Run() error {
 	}
 	templateDir := s.cfg.LXCTemplateDir()
 	logger.Info("Templates:")
-	templateCmd := fmt.Sprintf("ls -lh %s/*.tar.zst 2>/dev/null || echo 'No templates'", templateDir)
+	templateCmd := fmt.Sprintf("ls -lh %s/*.tar.zst || echo 'No templates'", templateDir)
 	result, _ = s.lxcService.Execute(templateCmd, nil)
 	if result != "" {
 		logger.Info(result)

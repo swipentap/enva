@@ -71,14 +71,14 @@ func (a *EnableCacheServiceAction) Execute() bool {
 			return true
 		}
 		// Service started but stopped - check why (matching Python: sudo=True)
-		statusCmd := "systemctl status apt-cacher-ng --no-pager -l 2>&1 | head -20"
+		statusCmd := "systemctl status apt-cacher-ng --no-pager -l | head -20"
 		statusOutput, _ := a.SSHService.Execute(statusCmd, nil, true) // sudo=True
 		libs.GetLogger("enable_cache_service").Error("apt-cacher-ng service started but stopped. Status: %s", statusOutput)
 		return false
 	}
 	
 	// Service didn't start - check why (matching Python: sudo=True)
-	statusCmd := "systemctl status apt-cacher-ng --no-pager -l 2>&1 | head -20"
+	statusCmd := "systemctl status apt-cacher-ng --no-pager -l | head -20"
 	statusOutput, _ := a.SSHService.Execute(statusCmd, nil, true) // sudo=True
 	libs.GetLogger("enable_cache_service").Error("apt-cacher-ng service failed to start. Status: %s", statusOutput)
 	return false

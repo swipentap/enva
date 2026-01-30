@@ -86,8 +86,8 @@ LOG_FILE="/var/log/k3s-node-watcher.log"
 MAX_LOG_SIZE=10485760  # 10MB
 
 # Rotate log if too large
-if [ -f "$LOG_FILE" ] && [ $(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE" 2>/dev/null || echo 0) -gt $MAX_LOG_SIZE ]; then
-    mv "$LOG_FILE" "${LOG_FILE}.old" 2>/dev/null || true
+if [ -f "$LOG_FILE" ] && [ $(stat -f%z "$LOG_FILE" || stat -c%s "$LOG_FILE" || echo 0) -gt $MAX_LOG_SIZE ]; then
+    mv "$LOG_FILE" "${LOG_FILE}.old" || true
 fi
 
 log() {
@@ -97,17 +97,17 @@ log() {
 log "Starting k3s node watcher check..."
 
 # Check for nodes with unreachable taints
-NODES_WITH_TAINTS=$(k3s kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.taints}{"\n"}{end}' 2>/dev/null | grep "node.kubernetes.io/unreachable" || true)
+NODES_WITH_TAINTS=$(k3s kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.taints}{"\n"}{end}' | grep "node.kubernetes.io/unreachable" || true)
 
 if [ -n "$NODES_WITH_TAINTS" ]; then
     log "Found nodes with unreachable taints, fixing..."
     echo "$NODES_WITH_TAINTS" | while IFS=$'\t' read -r node_name taints; do
         log "Removing taints from node: $node_name"
-        k3s kubectl taint nodes "$node_name" node.kubernetes.io/unreachable:NoSchedule- 2>&1 | tee -a "$LOG_FILE" || true
-        k3s kubectl taint nodes "$node_name" node.kubernetes.io/unreachable:NoExecute- 2>&1 | tee -a "$LOG_FILE" || true
+        k3s kubectl taint nodes "$node_name" node.kubernetes.io/unreachable:NoSchedule- | tee -a "$LOG_FILE" || true
+        k3s kubectl taint nodes "$node_name" node.kubernetes.io/unreachable:NoExecute- | tee -a "$LOG_FILE" || true
         
         # Get node IP to find container ID
-        NODE_IP=$(k3s kubectl get node "$node_name" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "")
+        NODE_IP=$(k3s kubectl get node "$node_name" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}' || echo "")
         if [ -n "$NODE_IP" ]; then
             log "Node $node_name has IP: $NODE_IP"
             # Try to fix /dev/kmsg on the node (we'll use pct exec from host, but this runs inside container)
@@ -120,7 +120,7 @@ else
 fi
 
 # Check for NotReady nodes
-NOT_READY_NODES=$(k3s kubectl get nodes --no-headers 2>/dev/null | grep -v " Ready " | awk '{print $1}' || true)
+NOT_READY_NODES=$(k3s kubectl get nodes --no-headers | grep -v " Ready " | awk '{print $1}' || true)
 
 if [ -n "$NOT_READY_NODES" ]; then
     log "Found NotReady nodes: $NOT_READY_NODES"
@@ -239,7 +239,7 @@ WantedBy=timers.target
 	}
 
 	// Reload systemd and enable timer
-	reloadCmd := "systemctl daemon-reload 2>&1"
+	reloadCmd := "systemctl daemon-reload"
 	var reloadOutput string
 	var reloadExit *int
 	if a.SSHService != nil {
@@ -252,7 +252,7 @@ WantedBy=timers.target
 		return false
 	}
 
-	enableTimerCmd := "systemctl enable k3s-node-watcher.timer 2>&1 && systemctl start k3s-node-watcher.timer 2>&1"
+	enableTimerCmd := "systemctl enable k3s-node-watcher.timer && systemctl start k3s-node-watcher.timer"
 	var enableOutput string
 	var enableExit *int
 	if a.SSHService != nil {

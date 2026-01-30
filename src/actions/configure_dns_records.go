@@ -121,7 +121,7 @@ func (a *ConfigureDnsRecordsAction) Execute() bool {
 	}
 
 	// Install postgresql-client if needed
-	installPgClientCmd := "command -v psql >/dev/null || apt-get install -y postgresql-client"
+	installPgClientCmd := "command -v psql  || apt-get install -y postgresql-client"
 	timeout := 60
 	a.PCTService.Execute(dnsContainer.ID, installPgClientCmd, &timeout)
 

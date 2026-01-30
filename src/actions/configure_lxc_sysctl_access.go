@@ -41,7 +41,7 @@ func (a *ConfigureLxcSysctlAccessAction) Execute() bool {
 	// Get LXC service from PCT service
 	lxcService := a.PCTService.GetLXCService()
 	if lxcService != nil {
-		checkCmd := fmt.Sprintf("grep -E '^lxc.(mount.auto|apparmor.profile|cap.drop|cgroup2.devices.allow)' %s 2>/dev/null || echo 'not_found'", configFile)
+		checkCmd := fmt.Sprintf("grep -E '^lxc.(mount.auto|apparmor.profile|cap.drop|cgroup2.devices.allow)' %s || echo 'not_found'", configFile)
 		checkOutput, _ := lxcService.Execute(checkCmd, nil)
 		
 		needsRestart := false

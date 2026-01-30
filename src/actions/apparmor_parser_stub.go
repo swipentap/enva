@@ -30,8 +30,8 @@ func (a *AppArmorParserStubAction) Description() string {
 
 func (a *AppArmorParserStubAction) Execute() bool {
 	script := `APPARMOR_BIN=/usr/sbin/apparmor_parser
-if command -v dpkg-divert >/dev/null 2>&1 && [ -f "$APPARMOR_BIN" ]; then
-  dpkg-divert --quiet --local --rename --add "$APPARMOR_BIN" >/dev/null 2>&1 || true
+if command -v dpkg-divert  && [ -f "$APPARMOR_BIN" ]; then
+  dpkg-divert --quiet --local --rename --add "$APPARMOR_BIN"  || true
   if [ -f "$APPARMOR_BIN.distrib" ]; then
     cat <<'APPARMOR_STUB' > "$APPARMOR_BIN"
 #!/bin/sh
@@ -40,7 +40,7 @@ if [ "$1" = "--version" ] || [ "$1" = "-V" ]; then
 fi
 exit 0
 APPARMOR_STUB
-    chmod +x "$APPARMOR_BIN" 2>/dev/null || true
+    chmod +x "$APPARMOR_BIN" || true
   fi
 fi
 echo apparmor_stub_done`

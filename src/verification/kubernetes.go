@@ -69,7 +69,7 @@ func verifyNodesReady(cfg *libs.LabConfig, pctService *services.PCTService, cont
 	maxWait := 120
 	waitTime := 0
 	for waitTime < maxWait {
-		cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get nodes --no-headers 2>&1"
+		cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get nodes --no-headers"
 		timeout := 30
 		output, exitCode := pctService.Execute(controlID, cmd, &timeout)
 		if exitCode != nil && *exitCode == 0 && output != "" {
@@ -110,7 +110,7 @@ func verifyNoUnreachableTaints(cfg *libs.LabConfig, pctService *services.PCTServ
 	logger := libs.GetLogger("verify_kubernetes")
 	logger.Printf("Checking for unreachable taints on worker nodes...")
 
-	cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.taints}{\"\\n\"}{end}' 2>&1"
+	cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.spec.taints}{\"\\n\"}{end}'"
 	timeout := 30
 	output, exitCode := pctService.Execute(controlID, cmd, &timeout)
 	if exitCode == nil || *exitCode != 0 {
@@ -127,8 +127,8 @@ func verifyNoUnreachableTaints(cfg *libs.LabConfig, pctService *services.PCTServ
 				nodeName := parts[0]
 				logger.Printf("✗ Node %s has unreachable taint, removing...", nodeName)
 				// Remove both NoSchedule and NoExecute taints
-				removeTaintCmd1 := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl taint nodes %s node.kubernetes.io/unreachable:NoSchedule- 2>&1", nodeName)
-				removeTaintCmd2 := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl taint nodes %s node.kubernetes.io/unreachable:NoExecute- 2>&1", nodeName)
+				removeTaintCmd1 := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl taint nodes %s node.kubernetes.io/unreachable:NoSchedule-", nodeName)
+				removeTaintCmd2 := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl taint nodes %s node.kubernetes.io/unreachable:NoExecute-", nodeName)
 				timeout := 30
 				pctService.Execute(controlID, removeTaintCmd1, &timeout)
 				pctService.Execute(controlID, removeTaintCmd2, &timeout)
@@ -157,7 +157,7 @@ func verifyNoUnreachableTaints(cfg *libs.LabConfig, pctService *services.PCTServ
 				// If still not found and it's a worker node, try to get from node status
 				if nodeID == 0 && strings.Contains(nodeName, "worker") {
 					// Get node internal IP and match to container IP
-					getNodeIPCmd := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get node %s -o jsonpath='{.status.addresses[?(@.type==\"InternalIP\")].address}' 2>&1", nodeName)
+					getNodeIPCmd := fmt.Sprintf("export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get node %s -o jsonpath='{.status.addresses[?(@.type==\"InternalIP\")].address}'", nodeName)
 					timeout := 10
 					nodeIP, _ := pctService.Execute(controlID, getNodeIPCmd, &timeout)
 					if nodeIP != "" {
@@ -172,7 +172,7 @@ func verifyNoUnreachableTaints(cfg *libs.LabConfig, pctService *services.PCTServ
 				}
 				if nodeID != 0 {
 					logger.Printf("Fixing /dev/kmsg on node %d...", nodeID)
-					fixKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg && systemctl restart k3s-agent 2>&1 || systemctl restart k3s 2>&1"
+					fixKmsgCmd := "rm -f /dev/kmsg && ln -sf /dev/console /dev/kmsg && systemctl restart k3s-agent || systemctl restart k3s"
 					pctService.Execute(nodeID, fixKmsgCmd, nil)
 					time.Sleep(5 * time.Second)
 				}
@@ -227,7 +227,7 @@ func verifyKmsgExists(cfg *libs.LabConfig, pctService *services.PCTService) bool
 			}
 
 			logger.Printf("Restarting %s service on node %d...", serviceName, nodeID)
-			restartCmd := fmt.Sprintf("systemctl restart %s 2>&1", serviceName)
+			restartCmd := fmt.Sprintf("systemctl restart %s", serviceName)
 			pctService.Execute(nodeID, restartCmd, nil)
 			time.Sleep(5 * time.Second)
 		} else {
@@ -243,7 +243,7 @@ func verifyRancherAccessible(cfg *libs.LabConfig, pctService *services.PCTServic
 	logger.Printf("Verifying Rancher is accessible...")
 
 	// First check if Rancher service exists
-	cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get svc rancher -n cattle-system 2>&1"
+	cmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get svc rancher -n cattle-system"
 	timeout := 30
 	output, exitCode := pctService.Execute(controlID, cmd, &timeout)
 	if exitCode == nil || *exitCode != 0 || !strings.Contains(output, "rancher") {
@@ -252,7 +252,7 @@ func verifyRancherAccessible(cfg *libs.LabConfig, pctService *services.PCTServic
 	}
 
 	// Get ClusterIP
-	getClusterIPCmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get svc rancher -n cattle-system -o jsonpath='{.spec.clusterIP}' 2>&1"
+	getClusterIPCmd := "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && k3s kubectl get svc rancher -n cattle-system -o jsonpath='{.spec.clusterIP}'"
 	timeout = 30
 	clusterIPOutput, clusterIPExit := pctService.Execute(controlID, getClusterIPCmd, &timeout)
 	if clusterIPExit == nil || *clusterIPExit != 0 || clusterIPOutput == "" {
@@ -264,7 +264,7 @@ func verifyRancherAccessible(cfg *libs.LabConfig, pctService *services.PCTServic
 	// Try to access Rancher via ClusterIP
 	maxAttempts := 10
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		testCmd := fmt.Sprintf("curl -k -s --max-time 5 https://%s:443 2>&1 | head -1", clusterIP)
+		testCmd := fmt.Sprintf("curl -k -s --max-time 5 https://%s:443 | head -1", clusterIP)
 		timeout = 10
 		testOutput, testExit := pctService.Execute(controlID, testCmd, &timeout)
 		if testExit != nil && *testExit == 0 && (strings.Contains(testOutput, "apiRoot") || strings.Contains(testOutput, "collection") || strings.Contains(testOutput, "rancher")) {
@@ -311,7 +311,7 @@ func VerifyHAProxyBackends(cfg *libs.LabConfig, pctService *services.PCTService)
 		}
 	}
 
-	cmd := fmt.Sprintf("curl -s http://localhost:%d/stats 2>&1 | grep -E 'backend_|UP|DOWN' | head -20", statsPort)
+	cmd := fmt.Sprintf("curl -s http://localhost:%d/stats | grep -E 'backend_|UP|DOWN' | head -20", statsPort)
 	timeout := 10
 	output, exitCode := pctService.Execute(haproxyCT.ID, cmd, &timeout)
 	if exitCode == nil || *exitCode != 0 {

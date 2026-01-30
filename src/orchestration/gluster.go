@@ -148,7 +148,7 @@ func fixAPTSources(nodes []*NodeInfo, cfg *libs.LabConfig) bool {
 }
 
 func fixAPTSourcesForNode(node *NodeInfo, cfg *libs.LabConfig, pctService *services.PCTService) {
-	sourcesCmd := "sed -i 's/oracular/plucky/g' /etc/apt/sources.list 2>/dev/null || true; if ! grep -q '^deb.*plucky.*main' /etc/apt/sources.list; then echo 'deb http://archive.ubuntu.com/ubuntu plucky main universe multiverse' > /etc/apt/sources.list; echo 'deb http://archive.ubuntu.com/ubuntu plucky-updates main universe multiverse' >> /etc/apt/sources.list; echo 'deb http://archive.ubuntu.com/ubuntu plucky-security main universe multiverse' >> /etc/apt/sources.list; fi 2>&1"
+	sourcesCmd := "sed -i 's/oracular/plucky/g' /etc/apt/sources.list || true; if ! grep -q '^deb.*plucky.*main' /etc/apt/sources.list; then echo 'deb http://archive.ubuntu.com/ubuntu plucky main universe multiverse' > /etc/apt/sources.list; echo 'deb http://archive.ubuntu.com/ubuntu plucky-updates main universe multiverse' >> /etc/apt/sources.list; echo 'deb http://archive.ubuntu.com/ubuntu plucky-security main universe multiverse' >> /etc/apt/sources.list; fi"
 	sourcesResult, _ := pctService.Execute(node.ContainerID, sourcesCmd, nil)
 	if strings.Contains(strings.ToLower(sourcesResult), "error") {
 		libs.GetLogger("gluster").Printf("Apt sources fix had issues on %s: %s", node.Hostname, sourcesResult[len(sourcesResult)-200:])
@@ -206,7 +206,7 @@ func configureProxy(containerID int, useProxy bool, proxySettings [2]*string, cf
 	aptCacheIP := proxySettings[0]
 	aptCachePort := proxySettings[1]
 	if useProxy && aptCacheIP != nil && aptCachePort != nil {
-		proxyCmd := fmt.Sprintf("echo 'Acquire::http::Proxy \"http://%s:%d\";' > /etc/apt/apt.conf.d/01proxy || true 2>&1", *aptCacheIP, *aptCachePort)
+		proxyCmd := fmt.Sprintf("echo 'Acquire::http::Proxy \"http://%s:%d\";' > /etc/apt/apt.conf.d/01proxy || true", *aptCacheIP, *aptCachePort)
 		timeout := 10
 		proxyResult, _ := pctService.Execute(containerID, proxyCmd, &timeout)
 		if strings.Contains(strings.ToLower(proxyResult), "error") {
@@ -218,7 +218,7 @@ func configureProxy(containerID int, useProxy bool, proxySettings [2]*string, cf
 			libs.GetLogger("gluster").Printf("Proxy configuration had issues: %s", proxyResult[start:])
 		}
 	} else {
-		rmProxyResult, _ := pctService.Execute(containerID, "rm -f /etc/apt/apt.conf.d/01proxy 2>&1", libs.IntPtr(10))
+		rmProxyResult, _ := pctService.Execute(containerID, "rm -f /etc/apt/apt.conf.d/01proxy", libs.IntPtr(10))
 		if strings.Contains(strings.ToLower(rmProxyResult), "error") {
 			outputLen := len(rmProxyResult)
 			start := 0
@@ -271,7 +271,7 @@ func createBricks(nodes []*NodeInfo, brickPath string, cfg *libs.LabConfig) bool
 	pctService := services.NewPCTService(lxcService)
 	for _, node := range nodes {
 		libs.GetLogger("gluster").Printf("Creating brick on %s...", node.Hostname)
-		brickCmd := fmt.Sprintf("mkdir -p %s && chmod 755 %s 2>&1", brickPath, brickPath)
+		brickCmd := fmt.Sprintf("mkdir -p %s && chmod 755 %s", brickPath, brickPath)
 		brickResult, _ := pctService.Execute(node.ContainerID, brickCmd, nil)
 		if strings.Contains(strings.ToLower(brickResult), "error") {
 			outputLen := len(brickResult)
@@ -426,7 +426,7 @@ func mountGlusterVolume(manager *NodeInfo, workers []*NodeInfo, glusterCfg *libs
 	libs.GetLogger("gluster").Printf("Mounting GlusterFS volume on all nodes...")
 	for _, node := range nodes {
 		libs.GetLogger("gluster").Printf("Mounting on %s...", node.Hostname)
-		mkdirCmd := fmt.Sprintf("mkdir -p %s 2>&1", mountPoint)
+		mkdirCmd := fmt.Sprintf("mkdir -p %s", mountPoint)
 		mkdirResult, _ := pctService.Execute(node.ContainerID, mkdirCmd, nil)
 		if strings.Contains(strings.ToLower(mkdirResult), "error") {
 			outputLen := len(mkdirResult)
@@ -438,7 +438,7 @@ func mountGlusterVolume(manager *NodeInfo, workers []*NodeInfo, glusterCfg *libs
 			return false
 		}
 		fstabEntry := fmt.Sprintf("%s:/%s %s glusterfs defaults,_netdev 0 0", manager.Hostname, volumeName, mountPoint)
-		fstabCmd := fmt.Sprintf("grep -q '%s' /etc/fstab || echo '%s' >> /etc/fstab 2>&1", mountPoint, fstabEntry)
+		fstabCmd := fmt.Sprintf("grep -q '%s' /etc/fstab || echo '%s' >> /etc/fstab", mountPoint, fstabEntry)
 		fstabResult, _ := pctService.Execute(node.ContainerID, fstabCmd, nil)
 		if strings.Contains(strings.ToLower(fstabResult), "error") {
 			outputLen := len(fstabResult)
@@ -448,7 +448,7 @@ func mountGlusterVolume(manager *NodeInfo, workers []*NodeInfo, glusterCfg *libs
 			}
 			libs.GetLogger("gluster").Printf("fstab update had issues on %s: %s", node.Hostname, fstabResult[start:])
 		}
-		mountCmd := fmt.Sprintf("/usr/sbin/mount.glusterfs %s:/%s %s 2>&1 || /usr/sbin/mount.glusterfs %s:/%s %s 2>&1", manager.Hostname, volumeName, mountPoint, manager.IPAddress, volumeName, mountPoint)
+		mountCmd := fmt.Sprintf("/usr/sbin/mount.glusterfs %s:/%s %s || /usr/sbin/mount.glusterfs %s:/%s %s", manager.Hostname, volumeName, mountPoint, manager.IPAddress, volumeName, mountPoint)
 		mountResult, _ := pctService.Execute(node.ContainerID, mountCmd, nil)
 		if strings.Contains(strings.ToLower(mountResult), "error") && !strings.Contains(strings.ToLower(mountResult), "already mounted") {
 			outputLen := len(mountResult)
@@ -473,7 +473,7 @@ func verifyMount(node *NodeInfo, mountPoint string, cfg *libs.LabConfig, pctServ
 		libs.GetLogger("gluster").Printf("%s: Volume mounted successfully", node.Hostname)
 		return true
 	}
-	mountInfoCmd := fmt.Sprintf("mount | grep %s 2>/dev/null || echo 'NOT_MOUNTED'", mountPoint)
+	mountInfoCmd := fmt.Sprintf("mount | grep %s || echo 'NOT_MOUNTED'", mountPoint)
 	mountInfo, _ := pctService.Execute(node.ContainerID, mountInfoCmd, nil)
 	if strings.Contains(mountInfo, "NOT_MOUNTED") || mountInfo == "" {
 		libs.GetLogger("gluster").Printf("%s: Mount failed - volume not mounted", node.Hostname)
@@ -607,7 +607,7 @@ func mountGlusterOnClients(manager *NodeInfo, glusterCfg *libs.GlusterFSConfig, 
 		pctService.Execute(node.ID, fstabCmd, &timeout)
 		reloadCmd := "systemctl daemon-reload"
 		pctService.Execute(node.ID, reloadCmd, &timeout)
-		mountCmd := fmt.Sprintf("/usr/sbin/mount.glusterfs %s:/%s %s 2>&1 || /usr/sbin/mount.glusterfs %s:/%s %s 2>&1", manager.Hostname, volumeName, mountPoint, manager.IPAddress, volumeName, mountPoint)
+		mountCmd := fmt.Sprintf("/usr/sbin/mount.glusterfs %s:/%s %s || /usr/sbin/mount.glusterfs %s:/%s %s", manager.Hostname, volumeName, mountPoint, manager.IPAddress, volumeName, mountPoint)
 		timeout = 30
 		mountResult, mountExit := pctService.Execute(node.ID, mountCmd, &timeout)
 		if mountExit != nil && *mountExit != 0 {

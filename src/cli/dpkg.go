@@ -47,11 +47,6 @@ func (d *Dpkg) Configure() string {
 	if d.logFile != nil {
 		parts = append(parts, ">"+quote(*d.logFile))
 	}
-	if d.suppressErrors {
-		parts = append(parts, "2>&1 || true")
-	} else {
-		parts = append(parts, "2>&1")
-	}
 	return strings.Join(parts, " ")
 }
 
@@ -68,6 +63,6 @@ func (d *Dpkg) Divert(path string, quiet, local, rename bool, action string) str
 		parts = append(parts, "--rename")
 	}
 	parts = append(parts, action, quote(path))
-	return strings.Join(parts, " ") + " 2>&1"
+	return strings.Join(parts, " ") + ""
 }
 

@@ -59,12 +59,12 @@ func (f *FileOps) Write(path, content string) string {
 	if !f.append {
 		redir = ">"
 	}
-	return fmt.Sprintf("printf '%s' %s %s 2>&1", sanitized, redir, quotePath(path))
+	return fmt.Sprintf("printf '%s' %s %s", sanitized, redir, quotePath(path))
 }
 
 // Chmod generates chmod command
 func (f *FileOps) Chmod(path, mode string) string {
-	return fmt.Sprintf("chmod %s %s 2>&1", mode, quotePath(path))
+	return fmt.Sprintf("chmod %s %s", mode, quotePath(path))
 }
 
 // Mkdir generates mkdir command
@@ -73,7 +73,7 @@ func (f *FileOps) Mkdir(path string, parents bool) string {
 	if parents {
 		flag = "-p "
 	}
-	return fmt.Sprintf("mkdir %s%s 2>&1", flag, quotePath(path))
+	return fmt.Sprintf("mkdir %s%s", flag, quotePath(path))
 }
 
 // Chown generates chown command
@@ -82,7 +82,7 @@ func (f *FileOps) Chown(path, owner string, group *string) string {
 	if group != nil {
 		ownerSpec = fmt.Sprintf("%s:%s", owner, *group)
 	}
-	return fmt.Sprintf("chown %s %s 2>&1", ownerSpec, quotePath(path))
+	return fmt.Sprintf("chown %s %s", ownerSpec, quotePath(path))
 }
 
 // Remove generates rm command
@@ -102,45 +102,30 @@ func (f *FileOps) Remove(path string) string {
 	if !f.allowGlob {
 		quotedPath = quotePath(path)
 	}
-	return fmt.Sprintf("rm %s%s 2>&1", flagPart, quotedPath)
+	return fmt.Sprintf("rm %s%s", flagPart, quotedPath)
 }
 
 // Truncate generates truncate command
 func (f *FileOps) Truncate(path string) string {
 	cmd := fmt.Sprintf("truncate -s 0 %s", quotePath(path))
-	if f.suppressErrors {
-		cmd += " 2>/dev/null"
-	} else {
-		cmd += " 2>&1"
-	}
 	return cmd
 }
 
 // Symlink generates symlink command
 func (f *FileOps) Symlink(target, linkPath string) string {
-	return fmt.Sprintf("ln -s %s %s 2>&1", quotePath(target), quotePath(linkPath))
+	return fmt.Sprintf("ln -s %s %s", quotePath(target), quotePath(linkPath))
 }
 
 // FindDelete generates find delete command
 func (f *FileOps) FindDelete(directory, pattern, fileType string) string {
 	patternEscaped := escapeSingleQuotes(pattern)
 	cmd := fmt.Sprintf("find %s -type %s -name '%s' -delete", quotePath(directory), fileType, patternEscaped)
-	if f.suppressErrors {
-		cmd += " 2>/dev/null"
-	} else {
-		cmd += " 2>&1"
-	}
 	return cmd
 }
 
 // Exists generates command to check if file exists
 func (f *FileOps) Exists(path string) string {
 	cmd := fmt.Sprintf("test -f %s && echo exists || echo not_found", quotePath(path))
-	if f.suppressErrors {
-		cmd += " 2>/dev/null"
-	} else {
-		cmd += " 2>&1"
-	}
 	return cmd
 }
 

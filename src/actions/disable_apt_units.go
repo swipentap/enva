@@ -29,7 +29,7 @@ func (a *DisableAptUnitsAction) Description() string {
 }
 
 func (a *DisableAptUnitsAction) Execute() bool {
-	command := `for unit in apt-daily.service apt-daily.timer apt-daily-upgrade.service apt-daily-upgrade.timer; do systemctl stop "$unit" 2>/dev/null || true; systemctl disable "$unit" 2>/dev/null || true; systemctl mask "$unit" 2>/dev/null || true; done`
+	command := `for unit in apt-daily.service apt-daily.timer apt-daily-upgrade.service apt-daily-upgrade.timer; do systemctl stop "$unit" || true; systemctl disable "$unit" || true; systemctl mask "$unit" || true; done`
 	output, exitCode := a.SSHService.Execute(command, nil)
 	if exitCode != nil && *exitCode != 0 {
 		libs.GetLogger("disable_apt_units").Printf("disable automatic apt units failed with exit code %d", *exitCode)

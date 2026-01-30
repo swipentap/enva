@@ -64,7 +64,7 @@ func (a *SysctlOverrideAction) Execute() bool {
 		}
 		return false
 	}
-	reloadCmd := "systemctl daemon-reload && systemctl stop systemd-sysctl.service 2>/dev/null || true && systemctl start systemd-sysctl.service 2>/dev/null || true"
+	reloadCmd := "systemctl daemon-reload && systemctl stop systemd-sysctl.service || true && systemctl start systemd-sysctl.service || true"
 	output, exitCode = a.PCTService.Execute(containerIDInt, reloadCmd, nil)
 	if exitCode != nil && *exitCode != 0 {
 		libs.GetLogger("sysctl_override").Printf("reload systemd-sysctl failed with exit code %d", *exitCode)

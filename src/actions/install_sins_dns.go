@@ -64,7 +64,7 @@ func (a *InstallSinsDnsAction) Execute() bool {
 		libs.GetLogger("install_sins_dns").Error("Failed to install sins package: %s", output[start:])
 		return false
 	}
-	verifyCmd := "command -v sins >/dev/null && echo installed || echo not_installed"
+	verifyCmd := "command -v sins  && echo installed || echo not_installed"
 	verifyOutput, verifyExitCode := a.SSHService.Execute(verifyCmd, nil, true) // sudo=True
 	if verifyExitCode == nil || *verifyExitCode != 0 || !strings.Contains(verifyOutput, "installed") {
 		libs.GetLogger("install_sins_dns").Error("SiNS package was not installed correctly")
@@ -105,7 +105,7 @@ func (a *InstallSinsDnsAction) Execute() bool {
 		webPort = p
 	}
 	libs.GetLogger("install_sins_dns").Info("Ensuring PostgreSQL database '%s' exists...", postgresDB)
-	installPgClientCmd := "command -v psql >/dev/null || apt-get install -y postgresql-client"
+	installPgClientCmd := "command -v psql  || apt-get install -y postgresql-client"
 	timeout = 60
 	a.SSHService.Execute(installPgClientCmd, &timeout, true) // sudo=True
 	createDBCmd := fmt.Sprintf("PGPASSWORD=%s psql -h %s -p %d -U %s -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname = '%s'\" | grep -q 1 || PGPASSWORD=%s psql -h %s -p %d -U %s -d postgres -c \"CREATE DATABASE %s;\"", postgresPassword, postgresHost, postgresPort, postgresUser, postgresDB, postgresPassword, postgresHost, postgresPort, postgresUser, postgresDB)

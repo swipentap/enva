@@ -98,6 +98,10 @@ func main() {
 		RunE:         runBackup,
 		SilenceUsage: true, // Don't print usage on error (match Python behavior)
 	}
+	backupCmd.Flags().Int("timeout", 0, "Timeout in seconds for backup operations (0 = use defaults, applies to final tarball and archive operations)")
+	backupCmd.Flags().StringSlice("exclude", []string{}, "Paths to exclude from backup (relative to archive base, can be specified multiple times)")
+	backupCmd.Flags().Bool("show-sizes", false, "Show directory/file sizes before backing up")
+	backupCmd.Flags().Bool("check-space", false, "Show what's taking up space in directories before backing up")
 	rootCmd.AddCommand(backupCmd)
 
 	// Restore command
@@ -122,7 +126,6 @@ func getConfig(environment string) (*libs.LabConfig, error) {
 	// Determine config file path (matching Python: use script directory)
 	cfgPath := configFile
 	if cfgPath == "" {
-		// Python uses: SCRIPT_DIR / "enva.yaml" where SCRIPT_DIR is Path(__file__).parent.absolute()
 		// For Go, use executable directory or current directory
 		exePath, err := os.Executable()
 		if err == nil {
@@ -208,9 +211,7 @@ func runRedeploy(cmd *cobra.Command, args []string) error {
 	}
 
 	logger := libs.GetLogger("main")
-	logger.Info("==================================================")
-	logger.Info("Redeploy: Cleanup and Deploy")
-	logger.Info("==================================================")
+	logger.InfoBanner("Redeploy: Cleanup and Deploy")
 	logger.Info("\n[1/2] Running cleanup...")
 
 	lxcService := services.NewLXCService(cfg.LXCHost(), &cfg.SSH)
@@ -226,9 +227,7 @@ func runRedeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logger.Info("==================================================")
-	logger.Info("Redeploy completed!")
-	logger.Info("==================================================")
+	logger.InfoBanner("Redeploy completed!")
 	return nil
 }
 
@@ -250,10 +249,20 @@ func runBackup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	timeout, _ := cmd.Flags().GetInt("timeout")
+	var timeoutPtr *int
+	if timeout > 0 {
+		timeoutPtr = &timeout
+	}
+
+	excludePaths, _ := cmd.Flags().GetStringSlice("exclude")
+	showSizes, _ := cmd.Flags().GetBool("show-sizes")
+	checkSpace, _ := cmd.Flags().GetBool("check-space")
+
 	lxcService := services.NewLXCService(cfg.LXCHost(), &cfg.SSH)
 	pctService := services.NewPCTService(lxcService)
 	backupCmd := commands.NewBackup(cfg, lxcService, pctService)
-	return backupCmd.Run()
+	return backupCmd.Run(timeoutPtr, excludePaths, showSizes, checkSpace)
 }
 
 func runRestore(cmd *cobra.Command, args []string) error {

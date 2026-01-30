@@ -60,7 +60,7 @@ func (a *StartDockerServiceAction) Execute() bool {
 	enableDockerCmd := cli.NewSystemCtl().Service("docker").Enable()
 	a.SSHService.Execute(enableDockerCmd, nil)
 	libs.GetLogger("start_docker_service").Printf("Triggering Docker service via socket activation...")
-	triggerCmd := "docker version >/dev/null 2>&1 || true"
+	triggerCmd := "docker version  || true"
 	a.SSHService.Execute(triggerCmd, nil)
 	time.Sleep(3 * time.Second)
 	status, exitCode := a.SSHService.Execute(isActiveCmd, nil)

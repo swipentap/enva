@@ -54,11 +54,11 @@ func DestroyContainer(lxcHost string, containerID int, cfg *LabConfig, lxcServic
 
 	// Stop and destroy
 	GetLogger("common").Printf("Stopping and destroying container %d...", containerID)
-	destroyCmd := fmt.Sprintf("pct stop %d 2>/dev/null || true; sleep 2; pct destroy %d 2>&1", containerID, containerID)
+	destroyCmd := fmt.Sprintf("pct stop %d || true; sleep 2; pct destroy %d", containerID, containerID)
 	_, destroyExit := lxcService.Execute(destroyCmd, nil)
 	if destroyExit != nil && *destroyExit != 0 {
 		GetLogger("common").Printf("Destroy failed, trying force destroy...")
-		forceCmd := fmt.Sprintf("pct destroy %s --force 2>&1 || true", containerIDStr)
+		forceCmd := fmt.Sprintf("pct destroy %s --force || true", containerIDStr)
 		lxcService.Execute(forceCmd, nil)
 		time.Sleep(1 * time.Second)
 	}
@@ -93,7 +93,7 @@ func WaitForContainer(lxcHost string, containerID int, ipAddress string, maxAtte
 	// This is a simplified version that uses subprocess fallback
 	for i := 1; i <= maxAttemptsVal; i++ {
 		var status string
-		cmd := exec.Command("sh", "-c", fmt.Sprintf("ssh -o ConnectTimeout=10 %s \"pct status %d 2>&1\"", lxcHost, containerID))
+		cmd := exec.Command("sh", "-c", fmt.Sprintf("ssh -o ConnectTimeout=10 %s \"pct status %d\"", lxcHost, containerID))
 		output, _ := cmd.CombinedOutput()
 		status = string(output)
 
@@ -151,7 +151,7 @@ func SetupSSHKey(containerID int, ipAddress string, cfg *LabConfig, lxcService L
 	defaultUser := cfg.Users.DefaultUser()
 
 	// Remove old host key
-	exec.Command("sh", "-c", fmt.Sprintf("ssh-keygen -R %s 2>/dev/null", ipAddress)).Run()
+	exec.Command("sh", "-c", fmt.Sprintf("ssh-keygen -R %s", ipAddress)).Run()
 
 	// Base64 encode the key to avoid any shell escaping problems
 	keyB64 := base64.StdEncoding.EncodeToString([]byte(sshKey))

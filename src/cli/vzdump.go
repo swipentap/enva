@@ -34,17 +34,17 @@ func (v *Vzdump) Mode(value string) *Vzdump {
 
 // CreateTemplate generates command to create template from container using vzdump
 func (v *Vzdump) CreateTemplate(containerID, dumpdir string) string {
-	return fmt.Sprintf("vzdump %s --dumpdir %s --compress %s --mode %s 2>&1", containerID, dumpdir, v.compress, v.mode)
+	return fmt.Sprintf("vzdump %s --dumpdir %s --compress %s --mode %s", containerID, dumpdir, v.compress, v.mode)
 }
 
 // FindArchive generates command to find the most recent archive file for a container
 func (v *Vzdump) FindArchive(dumpdir, containerID string) string {
-	return fmt.Sprintf("ls -t %s/vzdump-lxc-%s-*.tar.zst 2>/dev/null | head -1", dumpdir, containerID)
+	return fmt.Sprintf("ls -t %s/vzdump-lxc-%s-*.tar.zst | head -1", dumpdir, containerID)
 }
 
 // GetArchiveSize generates command to get archive file size in bytes
 func (v *Vzdump) GetArchiveSize(archivePath string) string {
-	return fmt.Sprintf("stat -c%%s '%s' 2>/dev/null || echo '0'", archivePath)
+	return fmt.Sprintf("stat -c%%s '%s' || echo '0'", archivePath)
 }
 
 // ParseArchiveSize parses output to get archive file size

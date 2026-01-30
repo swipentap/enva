@@ -35,11 +35,7 @@ func (c *CloudInit) Status(wait bool) string {
 		cmd += " --wait"
 	}
 	if c.logFile != nil {
-		cmd += fmt.Sprintf(" >%s 2>&1", *c.logFile)
-	} else if c.suppressOutput {
-		cmd += " >/dev/null 2>&1"
-	} else {
-		cmd += " 2>&1"
+		cmd += fmt.Sprintf(" >%s", *c.logFile)
 	}
 	return cmd
 }
@@ -60,11 +56,6 @@ func (c *CloudInit) Clean(logs, seed, machineID bool) string {
 	if len(flags) > 0 {
 		cmd += " " + strings.Join(flags, " ")
 	}
-	if c.suppressOutput {
-		cmd += " >/dev/null 2>&1"
-	} else {
-		cmd += " 2>&1"
-	}
 	return cmd
 }
 
@@ -72,13 +63,9 @@ func (c *CloudInit) Clean(logs, seed, machineID bool) string {
 func (c *CloudInit) Wait(logFile *string) string {
 	cmd := "cloud-init status --wait"
 	if logFile != nil {
-		cmd += fmt.Sprintf(" >%s 2>&1", *logFile)
+		cmd += fmt.Sprintf(" >%s", *logFile)
 	} else if c.logFile != nil {
-		cmd += fmt.Sprintf(" >%s 2>&1", *c.logFile)
-	} else if c.suppressOutput {
-		cmd += " >/dev/null 2>&1"
-	} else {
-		cmd += " 2>&1"
+		cmd += fmt.Sprintf(" >%s", *c.logFile)
 	}
 	return cmd
 }

@@ -124,11 +124,11 @@ func (a *InstallCockroachdbAction) Execute() bool {
 	maxWaitOperator := 120
 	waitTimeOperator := 0
 	for waitTimeOperator < maxWaitOperator {
-		operatorCheckCmd := "kubectl get pods -n cockroach-operator-system -o jsonpath='{.items[0].status.phase}' 2>&1"
+		operatorCheckCmd := "kubectl get pods -n cockroach-operator-system -o jsonpath='{.items[0].status.phase}'"
 		timeout = 30
 		operatorCheck, _ := pctService.Execute(controlID, operatorCheckCmd, &timeout)
 		if strings.Contains(operatorCheck, "Running") {
-			readyCheckCmd := "kubectl get pods -n cockroach-operator-system -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}' 2>&1"
+			readyCheckCmd := "kubectl get pods -n cockroach-operator-system -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}'"
 			readyCheck, _ := pctService.Execute(controlID, readyCheckCmd, &timeout)
 			if strings.Contains(readyCheck, "True") {
 				libs.GetLogger("install_cockroachdb").Printf("CockroachDB Operator is ready")
@@ -141,7 +141,7 @@ func (a *InstallCockroachdbAction) Execute() bool {
 	}
 	if waitTimeOperator >= maxWaitOperator {
 		libs.GetLogger("install_cockroachdb").Printf("CockroachDB Operator not ready after %d seconds", maxWaitOperator)
-		debugCmd := "kubectl get pods -n cockroach-operator-system -o wide 2>&1"
+		debugCmd := "kubectl get pods -n cockroach-operator-system -o wide"
 		timeout = 30
 		debugOutput, _ := pctService.Execute(controlID, debugCmd, &timeout)
 		if debugOutput != "" {
@@ -153,7 +153,7 @@ func (a *InstallCockroachdbAction) Execute() bool {
 	maxWaitWebhook := 60
 	waitTimeWebhook := 0
 	for waitTimeWebhook < maxWaitWebhook {
-		webhookCheckCmd := "kubectl get endpoints cockroach-operator-webhook-service -n cockroach-operator-system -o jsonpath='{.subsets[0].addresses[0].ip}' 2>&1"
+		webhookCheckCmd := "kubectl get endpoints cockroach-operator-webhook-service -n cockroach-operator-system -o jsonpath='{.subsets[0].addresses[0].ip}'"
 		timeout = 30
 		webhookCheck, _ := pctService.Execute(controlID, webhookCheckCmd, &timeout)
 		if webhookCheck != "" && strings.TrimSpace(webhookCheck) != "" {
@@ -223,14 +223,14 @@ spec:
 	maxWaitCluster := 300
 	waitTimeCluster := 0
 	for waitTimeCluster < maxWaitCluster {
-		clusterStatusCmd := "kubectl get crdbcluster cockroachdb -o jsonpath='{.status.clusterStatus}' 2>&1"
+		clusterStatusCmd := "kubectl get crdbcluster cockroachdb -o jsonpath='{.status.clusterStatus}'"
 		timeout = 30
 		clusterStatus, _ := pctService.Execute(controlID, clusterStatusCmd, &timeout)
 		if strings.Contains(clusterStatus, "Finished") {
 			libs.GetLogger("install_cockroachdb").Printf("CockroachDB cluster is ready")
 			break
 		}
-		podsReadyCmd := "kubectl get pods -l app.kubernetes.io/instance=cockroachdb -o jsonpath='{.items[*].status.phase}' 2>&1"
+		podsReadyCmd := "kubectl get pods -l app.kubernetes.io/instance=cockroachdb -o jsonpath='{.items[*].status.phase}'"
 		podsStatus, _ := pctService.Execute(controlID, podsReadyCmd, &timeout)
 		if podsStatus != "" {
 			runningCount := strings.Count(podsStatus, "Running")
@@ -244,7 +244,7 @@ spec:
 		waitTimeCluster += 10
 	}
 	libs.GetLogger("install_cockroachdb").Printf("Setting root user password for Admin UI access...")
-	setPasswordCmd := fmt.Sprintf("kubectl exec cockroachdb-0 -- ./cockroach sql --certs-dir=/cockroach/cockroach-certs --host=cockroachdb-public -e \"ALTER USER root WITH PASSWORD '%s';\" 2>&1", cockroachdbPassword)
+	setPasswordCmd := fmt.Sprintf("kubectl exec cockroachdb-0 -- ./cockroach sql --certs-dir=/cockroach/cockroach-certs --host=cockroachdb-public -e \"ALTER USER root WITH PASSWORD '%s';\"", cockroachdbPassword)
 	timeout = 60
 	passwordOutput, passwordExit := pctService.Execute(controlID, setPasswordCmd, &timeout)
 	if passwordExit != nil && *passwordExit != 0 {

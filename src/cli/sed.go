@@ -36,7 +36,7 @@ func (s *Sed) Replace(path, search, replacement string) string {
 	escapedSearch := escapeDelimiter(escapeSingleQuotes(search), s.delimiter)
 	escapedReplacement := escapeDelimiter(escapeSingleQuotes(replacement), s.delimiter)
 	expression := fmt.Sprintf("s%s%s%s%s%s", s.delimiter, escapedSearch, s.delimiter, escapedReplacement, s.delimiter+s.flags)
-	return fmt.Sprintf("sed -i '%s' %s 2>&1", expression, quote(path))
+	return fmt.Sprintf("sed -i '%s' %s", expression, quote(path))
 }
 
 func escapeDelimiter(value, delimiter string) string {

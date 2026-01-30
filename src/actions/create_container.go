@@ -163,7 +163,7 @@ func (a *CreateContainerAction) Execute() bool {
 		sudoGroup := userCfg.SudoGroup
 		checkCmd := cli.NewUser().Username(username).CheckExists()
 		addCmd := cli.NewUser().Username(username).Shell("/bin/bash").Groups([]string{sudoGroup}).CreateHome(true).Add()
-		userCheckCmd := fmt.Sprintf("%s 2>&1 || %s", checkCmd, addCmd)
+		userCheckCmd := fmt.Sprintf("%s || %s", checkCmd, addCmd)
 		output, exitCode = pctService.Execute(a.ContainerCfg.ID, userCheckCmd, nil)
 		if exitCode != nil && *exitCode != 0 {
 			libs.GetLogger("create_container").Printf("Failed to create user %s: %s", username, output)

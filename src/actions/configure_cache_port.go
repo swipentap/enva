@@ -159,12 +159,12 @@ func (a *ConfigureCachePortAction) Execute() bool {
 
 	// Verify service is actually listening on the configured port
 	libs.GetLogger("configure_cache_port").Info("Verifying service is listening on port %d...", port)
-	portCheckCmd := fmt.Sprintf("ss -tlnp 2>/dev/null | grep -q ':%d ' || netstat -tlnp 2>/dev/null | grep -q ':%d '", port, port)
+	portCheckCmd := fmt.Sprintf("ss -tlnp | grep -q ':%d ' || netstat -tlnp | grep -q ':%d '", port, port)
 	_, portCheckExitCode := a.SSHService.Execute(portCheckCmd, nil, true) // sudo=True
 	if portCheckExitCode == nil || *portCheckExitCode != 0 {
 		libs.GetLogger("configure_cache_port").Error("Service is not listening on port %d", port)
 		// Show what ports are actually listening
-		listenCmd := "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null"
+		listenCmd := "ss -tlnp || netstat -tlnp"
 		listenOutput, _ := a.SSHService.Execute(listenCmd, nil, true) // sudo=True
 		if listenOutput != "" {
 			libs.GetLogger("configure_cache_port").Error("Currently listening ports: %s", listenOutput)

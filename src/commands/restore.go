@@ -49,9 +49,7 @@ func (r *Restore) Run(backupName string) error {
 			os.Exit(1)
 		}
 	}()
-	logger.Info("==================================================")
-	logger.Info("Restoring Cluster from Backup")
-	logger.Info("==================================================")
+	logger.InfoBanner("Restoring Cluster from Backup")
 	if backupName == "" {
 		logger.Error("Backup name is required. Use --backup-name <name>")
 		return &RestoreError{Message: "Backup name is required"}
@@ -89,7 +87,7 @@ func (r *Restore) Run(backupName string) error {
 	}
 	logger.Info("Extracting backup tarball...")
 	extractDir := fmt.Sprintf("%s/%s", r.cfg.Backup.BackupDir, backupName)
-	extractCmd := fmt.Sprintf("mkdir -p %s && cd %s && tar -xzf %s.tar.gz -C %s 2>&1", extractDir, r.cfg.Backup.BackupDir, backupName, extractDir)
+	extractCmd := fmt.Sprintf("mkdir -p %s && cd %s && tar -xzf %s.tar.gz -C %s", extractDir, r.cfg.Backup.BackupDir, backupName, extractDir)
 	timeout = 300
 	extractOutput, extractExit := r.pctService.Execute(backupContainer.ID, extractCmd, &timeout)
 	if extractExit == nil || *extractExit != 0 {
@@ -126,7 +124,7 @@ func (r *Restore) Run(backupName string) error {
 		}
 		for _, workerID := range workerNodeIDs {
 			logger.Info("Stopping k3s-agent service on worker node %d...", workerID)
-			stopAgentCmd := "systemctl stop k3s-agent 2>&1 || true"
+			stopAgentCmd := "systemctl stop k3s-agent || true"
 			timeout = 60
 			stopAgentOutput, stopAgentExit := r.pctService.Execute(workerID, stopAgentCmd, &timeout)
 			if stopAgentExit == nil || *stopAgentExit != 0 {
@@ -145,7 +143,7 @@ func (r *Restore) Run(backupName string) error {
 		}
 		if controlNodeID != nil && controlDataItem != nil {
 			logger.Info("Clearing existing k3s state on control node to ensure clean restore...")
-			removeCmd := fmt.Sprintf("rm -rf %s && mkdir -p %s && chmod 700 %s 2>&1 || true", controlDataItem.SourcePath, controlDataItem.SourcePath, controlDataItem.SourcePath)
+			removeCmd := fmt.Sprintf("rm -rf %s && mkdir -p %s && chmod 700 %s || true", controlDataItem.SourcePath, controlDataItem.SourcePath, controlDataItem.SourcePath)
 			timeout = 30
 			removeOutput, removeExit := r.pctService.Execute(*controlNodeID, removeCmd, &timeout)
 			if removeExit == nil || *removeExit != 0 {
@@ -212,16 +210,19 @@ func (r *Restore) Run(backupName string) error {
 			logger.Info("  Extracting archive to: %s", item.SourcePath)
 			if item.Name == "k3s-etcd" {
 				dbDir := item.SourcePath
-				removeDBCmd := fmt.Sprintf("rm -rf %s/* 2>&1 || true", dbDir)
+				removeDBCmd := fmt.Sprintf("rm -rf %s/* || true", dbDir)
 				timeout = 30
 				r.pctService.Execute(item.SourceContainerID, removeDBCmd, &timeout)
 			} else {
-				backupExistingCmd := fmt.Sprintf("mv %s %s.backup.$(date +%%s) 2>&1 || true", item.SourcePath, item.SourcePath)
+				backupExistingCmd := fmt.Sprintf("mv %s %s.backup.$(date +%%s) || true", item.SourcePath, item.SourcePath)
 				timeout = 30
 				r.pctService.Execute(item.SourceContainerID, backupExistingCmd, &timeout)
 			}
-			extractCmd := fmt.Sprintf("mkdir -p %s && tar -xzf %s -C %s 2>&1", *item.ArchiveBase, sourceTemp, *item.ArchiveBase)
+			extractCmd := fmt.Sprintf("mkdir -p %s && tar -xzf %s -C %s", *item.ArchiveBase, sourceTemp, *item.ArchiveBase)
 			timeout = 300
+			if item.Name == "glusterfs-data" {
+				timeout = 600 // 10 minutes for large GlusterFS data
+			}
 			extractOutput2, extractExit2 := r.pctService.Execute(item.SourceContainerID, extractCmd, &timeout)
 			if extractExit2 == nil || *extractExit2 != 0 {
 				logger.Info("  Failed to extract archive: %s", extractOutput2)
@@ -229,10 +230,10 @@ func (r *Restore) Run(backupName string) error {
 			}
 		} else {
 			logger.Info("  Copying file to: %s", item.SourcePath)
-			backupExistingCmd := fmt.Sprintf("mv %s %s.backup.$(date +%%s) 2>&1 || true", item.SourcePath, item.SourcePath)
+			backupExistingCmd := fmt.Sprintf("mv %s %s.backup.$(date +%%s) || true", item.SourcePath, item.SourcePath)
 			timeout = 30
 			r.pctService.Execute(item.SourceContainerID, backupExistingCmd, &timeout)
-			copyCmd := fmt.Sprintf("cp %s %s 2>&1", sourceTemp, item.SourcePath)
+			copyCmd := fmt.Sprintf("cp %s %s", sourceTemp, item.SourcePath)
 			timeout = 60
 			copyOutput, copyExit := r.pctService.Execute(item.SourceContainerID, copyCmd, &timeout)
 			if copyExit == nil || *copyExit != 0 {
@@ -240,7 +241,7 @@ func (r *Restore) Run(backupName string) error {
 				return &RestoreError{Message: fmt.Sprintf("Failed to copy file for %s", item.Name)}
 			}
 			if item.Name == "k3s-token" {
-				tokenCopyCmd := fmt.Sprintf("cp %s /var/lib/rancher/k3s/server/token 2>&1", item.SourcePath)
+				tokenCopyCmd := fmt.Sprintf("cp %s /var/lib/rancher/k3s/server/token", item.SourcePath)
 				timeout = 30
 				tokenCopyOutput, tokenCopyExit := r.pctService.Execute(item.SourceContainerID, tokenCopyCmd, &timeout)
 				if tokenCopyExit == nil || *tokenCopyExit != 0 {
@@ -251,10 +252,10 @@ func (r *Restore) Run(backupName string) error {
 			}
 			if strings.Contains(item.Name, "service-env") {
 				dirPath := "/etc/systemd/system"
-				mkdirCmd := fmt.Sprintf("mkdir -p %s 2>&1 || true", dirPath)
+				mkdirCmd := fmt.Sprintf("mkdir -p %s || true", dirPath)
 				timeout = 30
 				r.pctService.Execute(item.SourceContainerID, mkdirCmd, &timeout)
-				reloadCmd := "systemctl daemon-reload 2>&1"
+				reloadCmd := "systemctl daemon-reload"
 				timeout = 30
 				reloadOutput, reloadExit := r.pctService.Execute(item.SourceContainerID, reloadCmd, &timeout)
 				if reloadExit == nil || *reloadExit != 0 {
@@ -263,17 +264,28 @@ func (r *Restore) Run(backupName string) error {
 					logger.Info("  Systemd daemon reloaded to pick up restored service.env")
 				}
 			}
+			if item.Name == "haproxy-config" {
+				logger.Info("  Reloading HAProxy to apply restored configuration...")
+				reloadCmd := "systemctl reload haproxy || systemctl restart haproxy"
+				timeout = 30
+				reloadOutput, reloadExit := r.pctService.Execute(item.SourceContainerID, reloadCmd, &timeout)
+				if reloadExit == nil || *reloadExit != 0 {
+					logger.Error("  Failed to reload HAProxy: %s", reloadOutput)
+				} else {
+					logger.Info("  HAProxy reloaded successfully")
+				}
+			}
 		}
 		timeout = 30
-		r.pctService.Execute(item.SourceContainerID, fmt.Sprintf("rm -f %s 2>&1 || true", sourceTemp), &timeout)
+		r.pctService.Execute(item.SourceContainerID, fmt.Sprintf("rm -f %s || true", sourceTemp), &timeout)
 	}
-	cleanupCmd := fmt.Sprintf("rm -rf %s 2>&1 || true", extractDir)
+	cleanupCmd := fmt.Sprintf("rm -rf %s || true", extractDir)
 	timeout = 30
 	r.pctService.Execute(backupContainer.ID, cleanupCmd, &timeout)
 	if len(k3sItems) > 0 {
 		if controlNodeID != nil {
 			logger.Info("Removing credential files that may conflict with restored datastore...")
-			credCleanupCmd := "rm -f /var/lib/rancher/k3s/server/cred/passwd /var/lib/rancher/k3s/server/cred/ipsec.psk 2>&1 || true"
+			credCleanupCmd := "rm -f /var/lib/rancher/k3s/server/cred/passwd /var/lib/rancher/k3s/server/cred/ipsec.psk || true"
 			timeout = 30
 			r.pctService.Execute(*controlNodeID, credCleanupCmd, &timeout)
 			logger.Info("Starting k3s service on control node with restored data...")
@@ -288,7 +300,7 @@ func (r *Restore) Run(backupName string) error {
 			maxWait := 120
 			waitTime := 0
 			for waitTime < maxWait {
-				checkCmd2 := "systemctl is-active k3s && kubectl get nodes 2>&1 | grep -q Ready || echo not-ready"
+				checkCmd2 := "systemctl is-active k3s && kubectl get nodes | grep -q Ready || echo not-ready"
 				timeout = 30
 				checkOutput2, checkExit2 := r.pctService.Execute(*controlNodeID, checkCmd2, &timeout)
 				if checkExit2 != nil && *checkExit2 == 0 && !strings.Contains(checkOutput2, "not-ready") {
@@ -319,7 +331,7 @@ func (r *Restore) Run(backupName string) error {
 			logger.Info("Waiting for worker nodes to connect to control plane...")
 			time.Sleep(10 * time.Second)
 			if controlNodeID != nil {
-				verifyCmd := "kubectl get nodes 2>&1"
+				verifyCmd := "kubectl get nodes"
 				timeout = 30
 				verifyOutput, verifyExit := r.pctService.Execute(*controlNodeID, verifyCmd, &timeout)
 				if verifyExit != nil && *verifyExit == 0 && verifyOutput != "" {
@@ -328,22 +340,48 @@ func (r *Restore) Run(backupName string) error {
 			}
 		}
 		if controlNodeID != nil {
+			logger.Info("Waiting for Rancher to be ready after restore...")
+			maxWait := 180
+			waitTime := 0
+			rancherReady := false
+			for waitTime < maxWait {
+				checkRancherCmd := "kubectl get pods -n cattle-system -l app=rancher --field-selector=status.phase=Running --no-headers 2>/dev/null | grep -q rancher && echo 'ready' || echo 'not-ready'"
+				timeout = 30
+				rancherStatus, _ := r.pctService.Execute(*controlNodeID, checkRancherCmd, &timeout)
+				if rancherStatus != "" && strings.Contains(rancherStatus, "ready") {
+					rancherReady = true
+					break
+				}
+				logger.Info("Waiting for Rancher to be ready (waited %d/%d seconds)...", waitTime, maxWait)
+				time.Sleep(10 * time.Second)
+				waitTime += 10
+			}
+			if !rancherReady {
+				logger.Warning("Rancher may not be fully ready after restore, but continuing...")
+			}
 			logger.Info("Checking Rancher first-login setting consistency...")
 			time.Sleep(10 * time.Second)
-			checkFirstLoginCmd := "kubectl get settings.management.cattle.io first-login -o jsonpath='{.value}' 2>&1 || echo 'not-found'"
+			checkFirstLoginCmd := "kubectl get settings.management.cattle.io first-login -o jsonpath='{.value}' || echo 'not-found'"
 			timeout = 30
 			firstLoginValue, _ := r.pctService.Execute(*controlNodeID, checkFirstLoginCmd, &timeout)
-			checkUserCmd := "kubectl get users.management.cattle.io -o jsonpath='{range .items[*]}{.username}{\"\\n\"}{end}' 2>&1 | grep -q '^admin$' && echo 'exists' || echo 'not-found'"
+			checkUserCmd := "kubectl get users.management.cattle.io -o jsonpath='{range .items[*]}{.username}{\"\\n\"}{end}' | grep -q '^admin$' && echo 'exists' || echo 'not-found'"
 			userExists, _ := r.pctService.Execute(*controlNodeID, checkUserCmd, &timeout)
+			checkBootstrapSecretCmd := "kubectl get secret -n cattle-system bootstrap-secret -o jsonpath='{.data.bootstrapPassword}' 2>/dev/null | base64 -d 2>/dev/null || echo 'not-found'"
+			bootstrapPassword, _ := r.pctService.Execute(*controlNodeID, checkBootstrapSecretCmd, &timeout)
+			if bootstrapPassword != "" && !strings.Contains(bootstrapPassword, "not-found") {
+				logger.Info("Rancher bootstrap password restored: %s", strings.TrimSpace(bootstrapPassword))
+			} else {
+				logger.Warning("Rancher bootstrap secret not found after restore - Rancher may have recreated it with default password 'admin'")
+			}
 			if firstLoginValue != "" && strings.TrimSpace(firstLoginValue) == "" && userExists != "" && strings.Contains(userExists, "exists") {
 				logger.Info("Detected inconsistent backup state: admin user exists but first-login is empty")
 				logger.Info("Fixing first-login setting to 'false'...")
-				patchCmd := "kubectl patch settings.management.cattle.io first-login --type json -p '[{\"op\": \"replace\", \"path\": \"/value\", \"value\": \"false\"}]' 2>&1"
+				patchCmd := "kubectl patch settings.management.cattle.io first-login --type json -p '[{\"op\": \"replace\", \"path\": \"/value\", \"value\": \"false\"}]'"
 				timeout = 30
 				patchOutput, patchExit := r.pctService.Execute(*controlNodeID, patchCmd, &timeout)
 				if patchExit != nil && *patchExit == 0 {
 					logger.Info("first-login setting fixed to 'false'")
-					restartCmd := "kubectl rollout restart deployment rancher -n cattle-system 2>&1"
+					restartCmd := "kubectl rollout restart deployment rancher -n cattle-system"
 					timeout = 30
 					r.pctService.Execute(*controlNodeID, restartCmd, &timeout)
 				} else {
@@ -352,10 +390,10 @@ func (r *Restore) Run(backupName string) error {
 			}
 		}
 	}
-	logger.Info("==================================================")
+	logger.InfoBannerStart()
 	logger.Info("Restore completed successfully!")
 	logger.Info("Backup restored: %s", backupName)
-	logger.Info("==================================================")
+	logger.InfoBannerEnd()
 	return nil
 }
 

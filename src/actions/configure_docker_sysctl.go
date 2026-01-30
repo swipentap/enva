@@ -33,7 +33,7 @@ func (a *ConfigureDockerSysctlAction) Execute() bool {
 		return false
 	}
 	libs.GetLogger("configure_docker_sysctl").Printf("Configuring sysctl for Docker containers...")
-	sysctlCmd := "sysctl -w net.ipv4.ip_unprivileged_port_start=0 2>/dev/null || true; echo 'net.ipv4.ip_unprivileged_port_start=0' >> /etc/sysctl.conf 2>/dev/null || true"
+	sysctlCmd := "sysctl -w net.ipv4.ip_unprivileged_port_start=0 || true; echo 'net.ipv4.ip_unprivileged_port_start=0' >> /etc/sysctl.conf || true"
 	output, exitCode := a.SSHService.Execute(sysctlCmd, nil)
 	if exitCode != nil && *exitCode != 0 {
 		outputLen := len(output)

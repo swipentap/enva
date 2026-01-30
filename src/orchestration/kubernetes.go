@@ -160,7 +160,7 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 	for _, workerConfig := range context.Workers {
 		workerID := workerConfig.ID
 		libs.GetLogger("kubernetes").Printf("Joining worker %d to k3s cluster...", workerID)
-		uninstallCmd := "/usr/local/bin/k3s-agent-uninstall.sh 2>&1 || true"
+		uninstallCmd := "/usr/local/bin/k3s-agent-uninstall.sh || true"
 		pctService.Execute(workerID, uninstallCmd, nil)
 		libs.GetLogger("kubernetes").Printf("Installing k3s agent on worker %d...", workerID)
 		joinCmd := fmt.Sprintf("curl -sfL https://get.k3s.io | K3S_URL=https://%s:6443 K3S_TOKEN=%s sh -", controlIP, *token)
@@ -204,7 +204,7 @@ func joinWorkersToCluster(context *KubernetesDeployContext, controlConfig *libs.
 		// Fix systemd service to ensure /dev/kmsg exists before k3s-agent starts (persistent fix for LXC)
 		libs.GetLogger("kubernetes").Printf("Configuring k3s-agent service to ensure /dev/kmsg exists on startup for worker %d...", workerID)
 		serviceFile := "/etc/systemd/system/k3s-agent.service"
-		checkServiceFileCmd := fmt.Sprintf("cat %s 2>&1", serviceFile)
+		checkServiceFileCmd := fmt.Sprintf("cat %s", serviceFile)
 		serviceContent, _ := pctService.Execute(workerID, checkServiceFileCmd, nil)
 		if !strings.Contains(serviceContent, "/dev/kmsg") {
 			// Use script file approach that works reliably with base64 encoding (avoids escaping issues)
@@ -220,7 +220,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 			fixOutput, fixExit := pctService.Execute(workerID, fixServiceScript, nil)
 			if fixExit != nil && *fixExit == 0 && strings.Contains(fixOutput, "success") {
 				libs.GetLogger("kubernetes").Printf("✓ Added /dev/kmsg fix to k3s-agent.service on worker %d", workerID)
-				reloadCmd := "systemctl daemon-reload 2>&1"
+				reloadCmd := "systemctl daemon-reload"
 				pctService.Execute(workerID, reloadCmd, nil)
 			} else {
 				libs.GetLogger("kubernetes").Printf("✗ Failed to modify k3s-agent.service on worker %d: %s", workerID, fixOutput)
@@ -244,7 +244,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 			workerName = fmt.Sprintf("k3s-worker-%d", workerID)
 		}
 		for waitTimeService < maxWaitService {
-			checkCmd := "systemctl is-active k3s-agent 2>&1"
+			checkCmd := "systemctl is-active k3s-agent"
 			checkOutput, checkExit := pctService.Execute(workerID, checkCmd, nil)
 			if checkExit != nil && *checkExit == 0 && checkOutput != "" && strings.TrimSpace(checkOutput) == "active" {
 				verifyNodeCmd := fmt.Sprintf("kubectl get nodes | grep -E '%s|%s' || echo not_found", workerName, controlIP)
@@ -253,7 +253,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 					libs.GetLogger("kubernetes").Printf("Worker %d (%s) joined cluster successfully and is Ready", workerID, workerName)
 					break
 				} else {
-					recheckCmd := "systemctl is-active k3s-agent 2>&1"
+					recheckCmd := "systemctl is-active k3s-agent"
 					recheckOutput, recheckExit := pctService.Execute(workerID, recheckCmd, nil)
 					if recheckExit == nil || *recheckExit != 0 || strings.TrimSpace(recheckOutput) != "active" {
 						libs.GetLogger("kubernetes").Printf("Worker %d service became inactive, waiting for it to become active again...", workerID)
@@ -275,7 +275,7 @@ rm -f /tmp/fix_k3s_service.sh`, serviceFile)
 		}
 		if waitTimeService >= maxWaitService {
 			libs.GetLogger("kubernetes").Printf("k3s-agent service not ready or node not in cluster on worker %d after %d seconds", workerID, maxWaitService)
-			finalCheckCmd := "systemctl is-active k3s-agent 2>&1"
+			finalCheckCmd := "systemctl is-active k3s-agent"
 			finalCheck, _ := pctService.Execute(workerID, finalCheckCmd, nil)
 			if strings.Contains(finalCheck, "active") {
 				libs.GetLogger("kubernetes").Printf("Service is active but node did not appear in cluster")
@@ -302,7 +302,7 @@ func taintControlPlane(context *KubernetesDeployContext, controlConfig *libs.Con
 	maxWait := 60
 	waitTime := 0
 	for waitTime < maxWait {
-		checkCmd := "kubectl get nodes 2>&1"
+		checkCmd := "kubectl get nodes"
 		timeout := 30
 		checkOutput, checkExit := pctService.Execute(controlID, checkCmd, &timeout)
 		if checkExit != nil && *checkExit == 0 && checkOutput != "" && strings.Contains(checkOutput, "Ready") {
@@ -315,7 +315,7 @@ func taintControlPlane(context *KubernetesDeployContext, controlConfig *libs.Con
 		libs.GetLogger("kubernetes").Printf("kubectl not ready, skipping control plane taint")
 		return true
 	}
-	taintCmd := "kubectl taint nodes k3s-control node-role.kubernetes.io/control-plane:NoSchedule --overwrite 2>&1"
+	taintCmd := "kubectl taint nodes k3s-control node-role.kubernetes.io/control-plane:NoSchedule --overwrite"
 	timeout := 30
 	taintOutput, taintExit := pctService.Execute(controlID, taintCmd, &timeout)
 	if taintExit != nil && *taintExit == 0 {
@@ -358,7 +358,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	defer lxcService.Disconnect()
 	pctService := services.NewPCTService(lxcService)
 	libs.GetLogger("kubernetes").Printf("Installing Rancher...")
-	kubectlCheckCmd := "command -v kubectl >/dev/null 2>&1 && echo installed || echo not_installed"
+	kubectlCheckCmd := "command -v kubectl  && echo installed || echo not_installed"
 	kubectlCheck, _ := pctService.Execute(controlID, kubectlCheckCmd, nil)
 	if strings.Contains(kubectlCheck, "not_installed") {
 		libs.GetLogger("kubernetes").Printf("Installing kubectl...")
@@ -376,7 +376,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	maxWaitK3s := 120
 	waitTimeK3s := 0
 	for waitTimeK3s < maxWaitK3s {
-		k3sCheckCmd := "systemctl is-active k3s 2>&1 || echo inactive"
+		k3sCheckCmd := "systemctl is-active k3s || echo inactive"
 		k3sCheck, _ := pctService.Execute(controlID, k3sCheckCmd, nil)
 		if strings.Contains(k3sCheck, "active") {
 			libs.GetLogger("kubernetes").Printf("k3s service is running")
@@ -442,7 +442,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	cniWaitTime := 0
 	cniReady := false
 	for cniWaitTime < maxCNIWait {
-		nodesCmd := "kubectl get nodes -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' 2>&1"
+		nodesCmd := "kubectl get nodes -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}'"
 		timeout = 30
 		nodesOutput, nodesExit := pctService.Execute(controlID, nodesCmd, &timeout)
 		nodesReady := nodesExit != nil && *nodesExit == 0 && nodesOutput != "" && strings.Contains(nodesOutput, "True") && !strings.Contains(nodesOutput, "False")
@@ -453,11 +453,11 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		flannelSubnetCmd := "test -f /run/flannel/subnet.env && echo exists || echo missing"
 		flannelSubnetOutput, flannelSubnetExit := pctService.Execute(controlID, flannelSubnetCmd, &timeout)
 		flannelSubnetExists := flannelSubnetExit != nil && *flannelSubnetExit == 0 && flannelSubnetOutput != "" && strings.Contains(flannelSubnetOutput, "exists")
-		pendingCNICmd := "kubectl get pods -n kube-system --field-selector=status.phase=Pending -o jsonpath='{.items[*].status.conditions[?(@.type==\"PodScheduled\")].message}' 2>&1 | grep -q 'network is not ready' && echo cni_error || echo no_cni_error"
+		pendingCNICmd := "kubectl get pods -n kube-system --field-selector=status.phase=Pending -o jsonpath='{.items[*].status.conditions[?(@.type==\"PodScheduled\")].message}' | grep -q 'network is not ready' && echo cni_error || echo no_cni_error"
 		timeout = 30
 		pendingCNIOutput, pendingCNIExit := pctService.Execute(controlID, pendingCNICmd, &timeout)
 		noCNIErrors := pendingCNIExit != nil && *pendingCNIExit == 0 && pendingCNIOutput != "" && strings.Contains(pendingCNIOutput, "no_cni_error")
-		runningPodsCmd := "kubectl get pods -n kube-system --field-selector=status.phase=Running --no-headers 2>&1 | wc -l"
+		runningPodsCmd := "kubectl get pods -n kube-system --field-selector=status.phase=Running --no-headers | wc -l"
 		timeout = 30
 		runningPodsOutput, runningPodsExit := pctService.Execute(controlID, runningPodsCmd, &timeout)
 		podsRunning := false
@@ -541,13 +541,13 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	webhookWaitTime := 0
 	webhookReady := false
 	for webhookWaitTime < maxWebhookWait {
-		webhookCheckCmd := "kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' 2>&1"
+		webhookCheckCmd := "kubectl get pods -n cert-manager -l app.kubernetes.io/component=webhook -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}'"
 		timeout = 30
 		webhookOutput, webhookExit := pctService.Execute(controlID, webhookCheckCmd, &timeout)
 		if webhookExit != nil && *webhookExit == 0 && webhookOutput != "" {
 			readyCount := strings.Count(webhookOutput, "True")
 			if readyCount > 0 {
-				endpointsCmd := "kubectl get endpoints cert-manager-webhook -n cert-manager -o jsonpath='{.subsets[*].addresses[*].ip}' 2>&1"
+				endpointsCmd := "kubectl get endpoints cert-manager-webhook -n cert-manager -o jsonpath='{.subsets[*].addresses[*].ip}'"
 				timeout = 30
 				endpointsOutput, endpointsExit := pctService.Execute(controlID, endpointsCmd, &timeout)
 				if endpointsExit != nil && *endpointsExit == 0 && endpointsOutput != "" && strings.TrimSpace(endpointsOutput) != "" {
@@ -599,7 +599,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	libs.GetLogger("kubernetes").Printf("Verifying Kubernetes API server stability...")
 	stableChecks := 3
 	for i := 0; i < stableChecks; i++ {
-		verifyCmd := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl cluster-info 2>&1"
+		verifyCmd := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl cluster-info"
 		timeout = 30
 		verifyOutput3, verifyExit3 := pctService.Execute(controlID, verifyCmd, &timeout)
 		if verifyExit3 == nil || *verifyExit3 != 0 || verifyOutput3 == "" || !strings.Contains(verifyOutput3, "is running at") {
@@ -614,7 +614,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		}
 	}
 	libs.GetLogger("kubernetes").Printf("Installing Rancher using Helm...")
-	helmCheckCmd := "command -v helm >/dev/null 2>&1 && echo installed || echo not_installed"
+	helmCheckCmd := "command -v helm  && echo installed || echo not_installed"
 	helmCheck, _ := pctService.Execute(controlID, helmCheckCmd, nil)
 	if strings.Contains(helmCheck, "not_installed") {
 		libs.GetLogger("kubernetes").Printf("Installing Helm...")
@@ -651,7 +651,7 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 	if cfg.Services.Rancher.Port != nil {
 		rancherNodePort = *cfg.Services.Rancher.Port
 	}
-	verifyCmd2 := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl cluster-info 2>&1"
+	verifyCmd2 := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl cluster-info"
 	timeout = 30
 	verifyOutput4, verifyExit4 := pctService.Execute(controlID, verifyCmd2, &timeout)
 	if verifyExit4 == nil || *verifyExit4 != 0 || verifyOutput4 == "" || !strings.Contains(verifyOutput4, "is running at") {
@@ -697,13 +697,13 @@ func installRancher(context *KubernetesDeployContext, controlConfig *libs.Contai
 		start = outputLen - 1000
 	}
 	libs.GetLogger("kubernetes").Printf("Rancher installation failed: %s", installOutput[start:])
-	k3sStatusCmd := "systemctl status k3s --no-pager -l 2>&1 | head -50"
+	k3sStatusCmd := "systemctl status k3s --no-pager -l | head -50"
 	timeout = 10
 	k3sStatus, _ := pctService.Execute(controlID, k3sStatusCmd, &timeout)
 	if k3sStatus != "" {
 		libs.GetLogger("kubernetes").Printf("k3s service status: %s", k3sStatus)
 	}
-	k3sLogsCmd := "journalctl -u k3s --no-pager -n 50 2>&1"
+	k3sLogsCmd := "journalctl -u k3s --no-pager -n 50"
 	k3sLogs, _ := pctService.Execute(controlID, k3sLogsCmd, &timeout)
 	if k3sLogs != "" {
 		libs.GetLogger("kubernetes").Printf("k3s service logs: %s", k3sLogs)
@@ -726,7 +726,7 @@ func restartAndVerifyNodes(context *KubernetesDeployContext, controlConfig *libs
 
 	// Restart control node
 	libs.GetLogger("kubernetes").Printf("Restarting control node %d...", controlID)
-	restartControlCmd := "systemctl restart k3s 2>&1"
+	restartControlCmd := "systemctl restart k3s"
 	pctService.Execute(controlID, restartControlCmd, nil)
 	time.Sleep(10 * time.Second)
 
@@ -734,7 +734,7 @@ func restartAndVerifyNodes(context *KubernetesDeployContext, controlConfig *libs
 	for _, workerConfig := range context.Workers {
 		workerID := workerConfig.ID
 		libs.GetLogger("kubernetes").Printf("Restarting worker node %d...", workerID)
-		restartWorkerCmd := "systemctl restart k3s-agent 2>&1"
+		restartWorkerCmd := "systemctl restart k3s-agent"
 		pctService.Execute(workerID, restartWorkerCmd, nil)
 		time.Sleep(5 * time.Second)
 	}

@@ -71,9 +71,7 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 	logger := libs.GetLogger("deploy")
 	plan = d.buildPlan(plan.StartStep, plan.EndStep)
 	d.logDeployPlan(plan)
-	logger.Info("==================================================")
-	logger.Info("Executing Deployment")
-	logger.Info("==================================================")
+	logger.InfoBanner("Executing Deployment")
 	if plan.AptCacheContainer != nil {
 		aptCacheSteps := 1 + d.countActions(plan.AptCacheContainer)
 		aptCacheStart := plan.CurrentActionStep + 1
@@ -230,10 +228,8 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 			}
 			return nil
 		} else {
-			overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
-			logger.Info("==================================================")
-			logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: kubernetes - setup kubernetes", overallPct, plan.CurrentActionStep, plan.TotalSteps)
-			logger.Info("==================================================")
+		overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
+		logger.InfoBannerf("[Overall: %d%%] [Step: %d/%d] Executing: kubernetes - setup kubernetes", overallPct, plan.CurrentActionStep, plan.TotalSteps)
 			if !d.lxcService.IsConnected() {
 				if !d.lxcService.Connect() {
 					return &DeployError{Message: fmt.Sprintf("Failed to connect to LXC host %s", d.cfg.LXCHost())}
@@ -265,10 +261,8 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 		} else if plan.EndStep != nil && plan.CurrentActionStep > *plan.EndStep {
 			logger.Info("Reached end step %d, stopping deployment", *plan.EndStep)
 		} else {
-			overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
-			logger.Info("==================================================")
-			logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: GlusterFS setup", overallPct, plan.CurrentActionStep, plan.TotalSteps)
-			logger.Info("==================================================")
+		overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
+		logger.InfoBannerf("[Overall: %d%%] [Step: %d/%d] Executing: GlusterFS setup", overallPct, plan.CurrentActionStep, plan.TotalSteps)
 			if !orchestration.SetupGlusterFS(d.cfg) {
 				return &DeployError{Message: "GlusterFS setup failed"}
 			}
@@ -318,10 +312,8 @@ func (d *Deploy) runDeploy(plan *actions.DeployPlan) error {
 				logger.Info("Reached end step %d, stopping deployment", *plan.EndStep)
 				break
 			}
-			overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
-			logger.Info("==================================================")
-			logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: Kubernetes action - %s", overallPct, plan.CurrentActionStep, plan.TotalSteps, actionName)
-			logger.Info("==================================================")
+		overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
+		logger.InfoBannerf("[Overall: %d%%] [Step: %d/%d] Executing: Kubernetes action - %s", overallPct, plan.CurrentActionStep, plan.TotalSteps, actionName)
 			action, err := actions.GetAction(actionName, sshService, aptService, d.pctService, nil, d.cfg, nil)
 			if err != nil {
 				if sshService != nil {
@@ -365,10 +357,8 @@ func (d *Deploy) executeContainerActions(plan *actions.DeployPlan, containerCfg 
 		return nil
 	}
 	if !skipContainerCreation {
-		overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
-		logger.Info("==================================================")
-		logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: %s - create container", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName)
-		logger.Info("==================================================")
+	overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
+	logger.InfoBannerf("[Overall: %d%%] [Step: %d/%d] Executing: %s - create container", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName)
 		createAction := actions.NewCreateContainerAction(nil, nil, nil, nil, d.cfg, containerCfg, plan)
 		if !createAction.Execute() {
 			return &DeployError{Message: fmt.Sprintf("Failed to create container: %s", containerName)}
@@ -413,10 +403,8 @@ func (d *Deploy) executeContainerActions(plan *actions.DeployPlan, containerCfg 
 			logger.Info("Reached end step %d, stopping action execution", *plan.EndStep)
 			return nil
 		}
-		overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
-		logger.Info("==================================================")
-		logger.Info("[Overall: %d%%] [Step: %d/%d] Executing: %s - %s", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName, actionName)
-		logger.Info("==================================================")
+	overallPct := int((float64(plan.CurrentActionStep) / float64(plan.TotalSteps)) * 100)
+	logger.InfoBannerf("[Overall: %d%%] [Step: %d/%d] Executing: %s - %s", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName, actionName)
 		action, err := actions.GetAction(actionName, sshService, aptService, d.pctService, &containerIDStr, d.cfg, containerCfg)
 		if err != nil {
 			return &DeployError{Message: fmt.Sprintf("Action '%s' not found for container '%s': %v", actionName, containerName, err)}
@@ -674,7 +662,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 		if d.cfg.Services.APTcache.Port != nil {
 			port = *d.cfg.Services.APTcache.Port
 		}
-		cmd := fmt.Sprintf("nc -zv %s %d 2>&1", *aptCacheCT.IPAddress, port)
+		cmd := fmt.Sprintf("nc -zv %s %d", *aptCacheCT.IPAddress, port)
 		result, _ := d.lxcService.Execute(cmd, nil)
 		if result != "" && (strings.Contains(strings.ToLower(result), "open") || strings.Contains(strings.ToLower(result), "succeeded")) {
 			logger.Info("  ✓ apt-cache: %s:%d", *aptCacheCT.IPAddress, port)
@@ -695,7 +683,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 		if d.cfg.Services.PostgreSQL.Port != nil {
 			port = *d.cfg.Services.PostgreSQL.Port
 		}
-		cmd := fmt.Sprintf("nc -zv %s %d 2>&1", *pgsqlCT.IPAddress, port)
+		cmd := fmt.Sprintf("nc -zv %s %d", *pgsqlCT.IPAddress, port)
 		result, _ := d.lxcService.Execute(cmd, nil)
 		if result != "" && (strings.Contains(strings.ToLower(result), "open") || strings.Contains(strings.ToLower(result), "succeeded")) {
 			logger.Info("  ✓ PostgreSQL: %s:%d", *pgsqlCT.IPAddress, port)
@@ -720,7 +708,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 		if d.cfg.Services.HAProxy.StatsPort != nil {
 			statsPort = *d.cfg.Services.HAProxy.StatsPort
 		}
-		cmd := fmt.Sprintf("nc -zv %s %d 2>&1", *haproxyCT.IPAddress, httpPort)
+		cmd := fmt.Sprintf("nc -zv %s %d", *haproxyCT.IPAddress, httpPort)
 		result, _ := d.lxcService.Execute(cmd, nil)
 		if result != "" && (strings.Contains(strings.ToLower(result), "open") || strings.Contains(strings.ToLower(result), "succeeded")) {
 			logger.Info("  ✓ HAProxy HTTP: %s:%d", *haproxyCT.IPAddress, httpPort)
@@ -728,7 +716,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 			logger.Error("  ✗ HAProxy HTTP: %s:%d - NOT RESPONDING", *haproxyCT.IPAddress, httpPort)
 			failedPorts = append(failedPorts, PortFailure{"HAProxy HTTP", *haproxyCT.IPAddress, httpPort})
 		}
-		cmd = fmt.Sprintf("nc -zv %s %d 2>&1", *haproxyCT.IPAddress, statsPort)
+		cmd = fmt.Sprintf("nc -zv %s %d", *haproxyCT.IPAddress, statsPort)
 		result, _ = d.lxcService.Execute(cmd, nil)
 		if result != "" && (strings.Contains(strings.ToLower(result), "open") || strings.Contains(strings.ToLower(result), "succeeded")) {
 			logger.Info("  ✓ HAProxy Stats: %s:%d", *haproxyCT.IPAddress, statsPort)
@@ -751,8 +739,8 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 				port = p
 			}
 		}
-		cmdTCP := fmt.Sprintf("nc -zv %s %d 2>&1", *dnsCT.IPAddress, port)
-		cmdUDP := fmt.Sprintf("nc -zuv %s %d 2>&1", *dnsCT.IPAddress, port)
+		cmdTCP := fmt.Sprintf("nc -zv %s %d", *dnsCT.IPAddress, port)
+		cmdUDP := fmt.Sprintf("nc -zuv %s %d", *dnsCT.IPAddress, port)
 		resultTCP, _ := d.lxcService.Execute(cmdTCP, nil)
 		resultUDP, _ := d.lxcService.Execute(cmdUDP, nil)
 		if (resultTCP != "" && (strings.Contains(strings.ToLower(resultTCP), "open") || strings.Contains(strings.ToLower(resultTCP), "succeeded"))) ||
@@ -778,7 +766,7 @@ func (d *Deploy) checkServicePorts() []PortFailure {
 			}
 		}
 		if glusterfsNode != nil && glusterfsNode.IPAddress != nil {
-			cmd := fmt.Sprintf("nc -zv %s 24007 2>&1", *glusterfsNode.IPAddress)
+			cmd := fmt.Sprintf("nc -zv %s 24007", *glusterfsNode.IPAddress)
 			result, _ := d.lxcService.Execute(cmd, nil)
 			if result != "" && (strings.Contains(strings.ToLower(result), "open") || strings.Contains(strings.ToLower(result), "succeeded")) {
 				logger.Info("  ✓ GlusterFS: %s:24007", *glusterfsNode.IPAddress)
@@ -801,13 +789,11 @@ func (d *Deploy) createPortError(failedPorts []PortFailure) error {
 
 func logDeploySummary(cfg *libs.LabConfig, failedPorts []PortFailure) {
 	logger := libs.GetLogger("deploy")
-	logger.Info("==================================================")
+	message := "Deploy Complete!"
 	if len(failedPorts) > 0 {
-		logger.Info("Deploy Complete (with port failures)")
-	} else {
-		logger.Info("Deploy Complete!")
+		message = "Deploy Complete (with port failures)"
 	}
-	logger.Info("==================================================")
+	logger.InfoBanner(message)
 	logger.Info("Containers:")
 	for i := range cfg.Containers {
 		ct := &cfg.Containers[i]
@@ -940,7 +926,7 @@ func logDeploySummary(cfg *libs.LabConfig, failedPorts []PortFailure) {
 			if lxcService.Connect() {
 				defer lxcService.Disconnect()
 				pctService := services.NewPCTService(lxcService)
-				getPasswordCmd := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}' 2>/dev/null || echo 'admin'"
+				getPasswordCmd := "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && /usr/local/bin/kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}' || echo 'admin'"
 				passwordOutput, _ := pctService.Execute(controlID, getPasswordCmd, nil)
 				if passwordOutput != "" {
 					bootstrapPassword = strings.TrimSpace(passwordOutput)
