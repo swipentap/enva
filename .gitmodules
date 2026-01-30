@@ -1,0 +1,6 @@
+[submodule "argocd-prod"]
+	path = argocd-prod
+	url = https://github.com/swipentap/prod.git
+[submodule "charts-repo"]
+	path = charts-repo
+	url = https://github.com/swipentap/charts.git
