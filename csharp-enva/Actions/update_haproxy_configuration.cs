@@ -31,11 +31,6 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
             Logger.GetLogger("update_haproxy_configuration").Printf("Lab configuration is missing");
             return false;
         }
-        if (PCTService == null)
-        {
-            Logger.GetLogger("update_haproxy_configuration").Printf("PCT service is missing");
-            return false;
-        }
         if (Cfg.Kubernetes == null || Cfg.Kubernetes.Control == null || Cfg.Kubernetes.Control.Count == 0)
         {
             Logger.GetLogger("update_haproxy_configuration").Printf("Kubernetes control node not found");
@@ -53,48 +48,35 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
             return false;
         }
 
-        int haproxyID = haproxyContainer.ID;
-        var controlID = Cfg.Kubernetes.Control[0];
-
-        // Detect Traefik NodePorts
-        int ingressHttpPort = 31523;  // Default fallback
-        int ingressHttpsPort = 30490; // Default fallback
+        // Create SSH connection to haproxy container
+        string defaultUser = Cfg.Users.DefaultUser();
+        SSHConfig haproxySSHConfig = new SSHConfig
+        {
+            ConnectTimeout = Cfg.SSH.ConnectTimeout,
+            BatchMode = Cfg.SSH.BatchMode,
+            DefaultExecTimeout = Cfg.SSH.DefaultExecTimeout,
+            ReadBufferSize = Cfg.SSH.ReadBufferSize,
+            PollInterval = Cfg.SSH.PollInterval,
+            DefaultUsername = defaultUser,
+            LookForKeys = Cfg.SSH.LookForKeys,
+            AllowAgent = Cfg.SSH.AllowAgent,
+            Verbose = Cfg.SSH.Verbose
+        };
+        SSHService haproxySSHService = new SSHService($"{defaultUser}@{haproxyContainer.IPAddress}", haproxySSHConfig);
+        if (!haproxySSHService.Connect())
+        {
+            logger.Printf("Failed to connect to haproxy container {0} via SSH", haproxyContainer.IPAddress);
+            return false;
+        }
 
         try
         {
-            // Check if kubectl is available
-            string kubectlCheckCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && command -v kubectl && echo installed || echo not_installed";
-            (string kubectlCheck, _) = PCTService.Execute(controlID, kubectlCheckCmd, 30);
-            
-            if (kubectlCheck.Contains("installed"))
-            {
-                // Get HTTP NodePort
-                string getHTTPPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"web\")].nodePort}' 2>/dev/null || echo ''";
-                (string httpPortOutput, _) = PCTService.Execute(controlID, getHTTPPortCmd, 30);
-                if (!string.IsNullOrEmpty(httpPortOutput) && int.TryParse(httpPortOutput.Trim(), out int detectedHttpPort) && detectedHttpPort > 0)
-                {
-                    ingressHttpPort = detectedHttpPort;
-                    logger.Printf("Detected Traefik HTTP NodePort: {0}", ingressHttpPort);
-                }
-                
-                // Get HTTPS NodePort
-                string getHTTPSPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"websecure\")].nodePort}' 2>/dev/null || echo ''";
-                (string httpsPortOutput, _) = PCTService.Execute(controlID, getHTTPSPortCmd, 30);
-                if (!string.IsNullOrEmpty(httpsPortOutput) && int.TryParse(httpsPortOutput.Trim(), out int detectedHttpsPort) && detectedHttpsPort > 0)
-                {
-                    ingressHttpsPort = detectedHttpsPort;
-                    logger.Printf("Detected Traefik HTTPS NodePort: {0}", ingressHttpsPort);
-                }
-            }
-            else
-            {
-                logger.Printf("kubectl not available, using default Traefik NodePorts (HTTP: {0}, HTTPS: {1})", ingressHttpPort, ingressHttpsPort);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Printf("Failed to detect Traefik NodePorts, using defaults (HTTP: {0}, HTTPS: {1}): {2}", ingressHttpPort, ingressHttpsPort, ex.Message);
-        }
+
+        // Use default NodePorts (detection would require PCTService which is not used in this action)
+        int ingressHttpPort = 31523;  // Default fallback
+        int ingressHttpsPort = 30490; // Default fallback
+        int sinsDnsTcpPort = 31758;  // Default fallback
+        logger.Printf("Using default NodePorts (HTTP: {0}, HTTPS: {1}, DNS TCP: {2})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort);
 
         // Get all k3s nodes for backend
         List<ContainerConfig> workerNodes = new List<ContainerConfig>();
@@ -155,6 +137,13 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
     default_backend backend_ingress_https";
         frontends.Add(httpsFrontend);
 
+        // DNS TCP frontend - TCP mode forwarding to SiNS DNS
+        string dnsTcpFrontend = $@"frontend dns-tcp-in
+    bind *:53
+    mode tcp
+    default_backend backend_sins_dns_tcp";
+        frontends.Add(dnsTcpFrontend);
+
         // HTTP backend - forward to k3s ingress HTTP NodePort
         List<string> httpServerLines = new List<string>();
         for (int i = 0; i < workerNodes.Count; i++)
@@ -182,6 +171,20 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
     balance roundrobin
 {string.Join("\n", httpsServerLines)}";
         backends.Add(httpsBackend);
+
+        // DNS TCP backend - forward to SiNS DNS TCP NodePort
+        List<string> dnsTcpServerLines = new List<string>();
+        for (int i = 0; i < workerNodes.Count; i++)
+        {
+            var server = workerNodes[i];
+            string serverName = $"sins-dns-{i + 1}";
+            dnsTcpServerLines.Add($"    server {serverName} {server.IPAddress}:{sinsDnsTcpPort} check");
+        }
+        string dnsTcpBackend = $@"backend backend_sins_dns_tcp
+    mode tcp
+    balance roundrobin
+{string.Join("\n", dnsTcpServerLines)}";
+        backends.Add(dnsTcpBackend);
 
         string frontendsText = string.Join("\n\n", frontends);
         string backendsText = string.Join("\n\n", backends);
@@ -220,7 +223,7 @@ listen stats
 
         // Write config to haproxy container
         string writeCmd = CLI.Files.NewFileOps().Write("/etc/haproxy/haproxy.cfg", configText).ToCommand();
-        (string output, int? exitCode) = PCTService.Execute(haproxyID, writeCmd, 30);
+        (string output, int? exitCode) = haproxySSHService.Execute(writeCmd, 30, true); // sudo=true
         if (exitCode.HasValue && exitCode.Value != 0)
         {
             logger.Printf("Failed to write HAProxy configuration: {0}", output);
@@ -229,15 +232,110 @@ listen stats
 
         // Reload HAProxy to apply new configuration
         string reloadCmd = "systemctl reload haproxy || systemctl restart haproxy";
-        (string reloadOutput, int? reloadExit) = PCTService.Execute(haproxyID, reloadCmd, 30);
+        (string reloadOutput, int? reloadExit) = haproxySSHService.Execute(reloadCmd, 30, true); // sudo=true
         if (reloadExit.HasValue && reloadExit.Value != 0)
         {
             logger.Printf("Failed to reload HAProxy: {0}", reloadOutput);
             return false;
         }
 
-        logger.Printf("HAProxy configuration updated successfully with Traefik NodePorts (HTTP: {0}, HTTPS: {1})", ingressHttpPort, ingressHttpsPort);
+        // Setup UDP DNS forwarding using socat
+        logger.Printf("Setting up UDP DNS forwarding to SiNS...");
+        
+        // Ensure socat is installed
+        (string socatCheck, int? socatExitCode) = haproxySSHService.Execute("command -v socat", 30);
+        if (!socatExitCode.HasValue || socatExitCode.Value != 0)
+        {
+            logger.Printf("Installing socat...");
+            string installSocatCmd = "apt-get update && apt-get install -y socat";
+            (string installOutput, int? installExit) = haproxySSHService.Execute(installSocatCmd, 60, true); // sudo=true
+            if (installExit.HasValue && installExit.Value != 0)
+            {
+                logger.Printf("Failed to install socat: {0}", installOutput);
+                return false;
+            }
+        }
+        
+        // Get first k3s node IP for UDP forwarding target (use control node if available, otherwise first worker)
+        string? udpTargetIP = null;
+        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
+        {
+            udpTargetIP = controlNode.IPAddress;
+        }
+        else if (workerNodes.Count > 0 && !string.IsNullOrEmpty(workerNodes[0].IPAddress))
+        {
+            udpTargetIP = workerNodes[0].IPAddress;
+        }
+
+        if (string.IsNullOrEmpty(udpTargetIP))
+        {
+            logger.Printf("Warning: No k3s node IP found for UDP DNS forwarding target");
+        }
+        else
+        {
+            // Disable systemd-resolved to free port 53
+            string disableResolvedCmd = "systemctl stop systemd-resolved 2>/dev/null; systemctl disable systemd-resolved 2>/dev/null; echo 'systemd-resolved disabled' || echo 'systemd-resolved not running'";
+            haproxySSHService.Execute(disableResolvedCmd, 30, true); // sudo=true
+
+            // Create systemd service for UDP DNS forwarding
+            string systemdServiceContent = $@"[Unit]
+Description=DNS UDP Forwarder to SiNS
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat UDP4-LISTEN:53,fork,reuseaddr UDP4:{udpTargetIP}:{sinsDnsTcpPort}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+";
+
+            string writeServiceCmd = CLI.Files.NewFileOps().Write("/etc/systemd/system/dns-udp-forwarder.service", systemdServiceContent).ToCommand();
+            (string serviceWriteOutput, int? serviceWriteExit) = haproxySSHService.Execute(writeServiceCmd, 30, true); // sudo=true
+            if (serviceWriteExit.HasValue && serviceWriteExit.Value != 0)
+            {
+                logger.Printf("Failed to write DNS UDP forwarder service: {0}", serviceWriteOutput);
+                return false;
+            }
+
+            // Reload systemd and enable/start the service
+            string enableServiceCmd = "systemctl daemon-reload && systemctl enable dns-udp-forwarder.service && systemctl restart dns-udp-forwarder.service";
+            (string enableServiceOutput, int? enableServiceExit) = haproxySSHService.Execute(enableServiceCmd, 30, true); // sudo=true
+            if (enableServiceExit.HasValue && enableServiceExit.Value != 0)
+            {
+                logger.Printf("Failed to enable/start DNS UDP forwarder service: {0}", enableServiceOutput);
+                return false;
+            }
+
+            // Verify service is actually running
+            (string statusOutput, int? statusExit) = haproxySSHService.Execute("systemctl is-active dns-udp-forwarder.service", 10, true); // sudo=true
+            if (statusExit.HasValue && statusExit.Value != 0)
+            {
+                logger.Printf("DNS UDP forwarder service failed to start. Status: {0}", statusOutput);
+                return false;
+            }
+            if (!statusOutput.Trim().Equals("active", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.Printf("DNS UDP forwarder service is not active. Status: {0}", statusOutput);
+                return false;
+            }
+
+            // Ensure HAProxy has CAP_NET_BIND_SERVICE capability to bind to port 53
+            string setCapCmd = "setcap 'cap_net_bind_service=+ep' /usr/sbin/haproxy 2>/dev/null || echo 'capability already set or setcap not available'";
+            haproxySSHService.Execute(setCapCmd, 30, true); // sudo=true
+
+            logger.Printf("DNS UDP forwarder service configured and started (target: {0}:{1})", udpTargetIP, sinsDnsTcpPort);
+        }
+
+        logger.Printf("HAProxy configuration updated successfully with Traefik NodePorts (HTTP: {0}, HTTPS: {1}) and SiNS DNS (TCP: {2})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort);
         return true;
+        }
+        finally
+        {
+            haproxySSHService.Disconnect();
+        }
     }
 }
 
