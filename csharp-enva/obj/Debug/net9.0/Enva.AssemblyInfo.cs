@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Enva")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+081aee27ad65f2825358aaba5cd7b0f12b7274b1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fa94dbb81f0c49bf9c1ce23224081c56a165fc97")]
 [assembly: System.Reflection.AssemblyProductAttribute("Enva")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Enva")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

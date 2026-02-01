@@ -173,10 +173,8 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
-    refresh:
-      time: 0s
 ";
-
+            
             // Write manifest to temporary file
             string tempYamlFile = "/tmp/root-apps.yaml";
             string writeYamlCmd = $"cat > {tempYamlFile} << 'EOF'\n{rootAppYaml}EOF";

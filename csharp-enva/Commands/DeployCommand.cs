@@ -24,12 +24,22 @@ public class PortFailure
     public int Port { get; set; }
 }
 
+public class StepTiming
+{
+    public int StepNumber { get; set; }
+    public string StepName { get; set; } = "";
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public TimeSpan? Duration => EndTime.HasValue ? EndTime.Value - StartTime : null;
+}
+
 public class DeployCommand
 {
     private LabConfig? cfg;
     private ILXCService? lxcService;
     private PCTService? pctService;
     private string? rancherBootstrapPassword;
+    private List<StepTiming> stepTimings = new List<StepTiming>();
 
     public DeployCommand(LabConfig? cfg, ILXCService? lxcService, PCTService? pctService)
     {
@@ -96,7 +106,7 @@ public class DeployCommand
                 {
                     failedPorts = CheckServicePorts();
                 }
-                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                 if (failedPorts.Count > 0)
                 {
                     throw CreatePortError(failedPorts);
@@ -125,7 +135,7 @@ public class DeployCommand
                 {
                     failedPorts = CheckServicePorts();
                 }
-                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                 if (failedPorts.Count > 0)
                 {
                     throw CreatePortError(failedPorts);
@@ -149,7 +159,7 @@ public class DeployCommand
                     {
                         failedPorts = CheckServicePorts();
                     }
-                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                     if (failedPorts.Count > 0)
                     {
                         throw CreatePortError(failedPorts);
@@ -168,7 +178,7 @@ public class DeployCommand
                     {
                         failedPorts = CheckServicePorts();
                     }
-                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                     if (failedPorts.Count > 0)
                     {
                         throw CreatePortError(failedPorts);
@@ -213,7 +223,7 @@ public class DeployCommand
                     {
                         failedPorts = CheckServicePorts();
                     }
-                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                     if (failedPorts.Count > 0)
                     {
                         throw CreatePortError(failedPorts);
@@ -232,7 +242,7 @@ public class DeployCommand
                     {
                         failedPorts = CheckServicePorts();
                     }
-                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                    LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                     if (failedPorts.Count > 0)
                     {
                         throw CreatePortError(failedPorts);
@@ -256,7 +266,7 @@ public class DeployCommand
                 {
                     failedPorts = CheckServicePorts();
                 }
-                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                 if (failedPorts.Count > 0)
                 {
                     throw CreatePortError(failedPorts);
@@ -266,28 +276,42 @@ public class DeployCommand
             else
             {
                 int overallPct = (int)((double)plan.CurrentActionStep / plan.TotalSteps * 100);
-                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: kubernetes - setup kubernetes ===", overallPct, plan.CurrentActionStep, plan.TotalSteps);
-                if (lxcService == null || !lxcService.IsConnected())
+                string stepName = "kubernetes: setup kubernetes";
+                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, stepName);
+                var stepTiming = new StepTiming { StepNumber = plan.CurrentActionStep, StepName = stepName, StartTime = DateTime.Now };
+                stepTimings.Add(stepTiming);
+                try
                 {
-                    if (lxcService == null || !lxcService.Connect())
+                    if (lxcService == null || !lxcService.IsConnected())
                     {
-                        throw new DeployError($"Failed to connect to LXC host {cfg?.LXCHost()}");
+                        if (lxcService == null || !lxcService.Connect())
+                        {
+                            stepTiming.EndTime = DateTime.Now;
+                            throw new DeployError($"Failed to connect to LXC host {cfg?.LXCHost()}");
+                        }
                     }
+                    if (pctService == null && lxcService != null)
+                    {
+                        pctService = new PCTService(lxcService);
+                    }
+                    var setupKubernetesAction = SetupKubernetesActionFactory.NewSetupKubernetesAction(null, null, pctService, null, cfg, null);
+                    if (!setupKubernetesAction.Execute())
+                    {
+                        stepTiming.EndTime = DateTime.Now;
+                        throw new DeployError("Failed to execute setup kubernetes action");
+                    }
+                    // Retrieve Rancher bootstrap password after Kubernetes setup
+                    if (cfg != null && cfg.Kubernetes != null && cfg.Kubernetes.Control != null && cfg.Kubernetes.Control.Count > 0 && cfg.Services.Services != null && cfg.Services.Services.ContainsKey("rancher") && pctService != null)
+                    {
+                        int controlID = cfg.Kubernetes.Control[0];
+                        rancherBootstrapPassword = GetRancherBootstrapPassword(controlID, pctService);
+                    }
+                    stepTiming.EndTime = DateTime.Now;
                 }
-                if (pctService == null && lxcService != null)
+                catch
                 {
-                    pctService = new PCTService(lxcService);
-                }
-                var setupKubernetesAction = SetupKubernetesActionFactory.NewSetupKubernetesAction(null, null, pctService, null, cfg, null);
-                if (!setupKubernetesAction.Execute())
-                {
-                    throw new DeployError("Failed to execute setup kubernetes action");
-                }
-                // Retrieve Rancher bootstrap password after Kubernetes setup
-                if (cfg != null && cfg.Kubernetes != null && cfg.Kubernetes.Control != null && cfg.Kubernetes.Control.Count > 0 && cfg.Services.Services != null && cfg.Services.Services.ContainsKey("rancher") && pctService != null)
-                {
-                    int controlID = cfg.Kubernetes.Control[0];
-                    rancherBootstrapPassword = GetRancherBootstrapPassword(controlID, pctService);
+                    stepTiming.EndTime = DateTime.Now;
+                    throw;
                 }
             }
             if (plan.EndStep.HasValue && plan.CurrentActionStep >= plan.EndStep.Value)
@@ -298,7 +322,7 @@ public class DeployCommand
                 {
                     failedPorts = CheckServicePorts();
                 }
-                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword);
+                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
                 if (failedPorts.Count > 0)
                 {
                     throw CreatePortError(failedPorts);
@@ -316,14 +340,38 @@ public class DeployCommand
             else if (plan.EndStep.HasValue && plan.CurrentActionStep > plan.EndStep.Value)
             {
                 logger.Printf("Reached end step {0}, stopping deployment", plan.EndStep.Value);
+                List<PortFailure> failedPorts = new List<PortFailure>();
+                if (plan.EndStep.Value == plan.TotalSteps)
+                {
+                    failedPorts = CheckServicePorts();
+                }
+                LogDeploySummary(cfg, failedPorts, rancherBootstrapPassword, stepTimings);
+                if (failedPorts.Count > 0)
+                {
+                    throw CreatePortError(failedPorts);
+                }
+                return;
             }
             else
             {
                 int overallPct = (int)((double)plan.CurrentActionStep / plan.TotalSteps * 100);
-                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: GlusterFS setup ===", overallPct, plan.CurrentActionStep, plan.TotalSteps);
-                if (!Gluster.SetupGlusterFS(cfg))
+                string stepName = "glusterfs: setup glusterfs";
+                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, stepName);
+                var stepTiming = new StepTiming { StepNumber = plan.CurrentActionStep, StepName = stepName, StartTime = DateTime.Now };
+                stepTimings.Add(stepTiming);
+                try
                 {
-                    throw new DeployError("GlusterFS setup failed");
+                    if (!Gluster.SetupGlusterFS(cfg))
+                    {
+                        stepTiming.EndTime = DateTime.Now;
+                        throw new DeployError("GlusterFS setup failed");
+                    }
+                    stepTiming.EndTime = DateTime.Now;
+                }
+                catch
+                {
+                    stepTiming.EndTime = DateTime.Now;
+                    throw;
                 }
             }
         }
@@ -384,21 +432,27 @@ public class DeployCommand
                     break;
                 }
                 int overallPct = (int)((double)plan.CurrentActionStep / plan.TotalSteps * 100);
-                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: Kubernetes action - {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, actionName);
+                string stepName = $"kubernetes: {actionName}";
+                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, stepName);
+                var stepTiming = new StepTiming { StepNumber = plan.CurrentActionStep, StepName = stepName, StartTime = DateTime.Now };
+                stepTimings.Add(stepTiming);
                 try
                 {
                     var action = ActionRegistry.GetAction(actionName, sshService, aptService, pctService, null, cfg, null);
                     if (!action.Execute())
                     {
+                        stepTiming.EndTime = DateTime.Now;
                         if (sshService != null)
                         {
                             sshService.Disconnect();
                         }
                         throw new DeployError($"Kubernetes action '{actionName}' failed");
                     }
+                    stepTiming.EndTime = DateTime.Now;
                 }
                 catch (Exception ex)
                 {
+                    stepTiming.EndTime = DateTime.Now;
                     if (sshService != null)
                     {
                         sshService.Disconnect();
@@ -412,7 +466,7 @@ public class DeployCommand
             }
         }
         List<PortFailure> finalFailedPorts = CheckServicePorts();
-        LogDeploySummary(cfg, finalFailedPorts, rancherBootstrapPassword);
+        LogDeploySummary(cfg, finalFailedPorts, rancherBootstrapPassword, stepTimings);
         if (finalFailedPorts.Count > 0)
         {
             throw CreatePortError(finalFailedPorts);
@@ -442,13 +496,26 @@ public class DeployCommand
         if (!skipContainerCreation)
         {
             int overallPct = (int)((double)plan.CurrentActionStep / plan.TotalSteps * 100);
-            logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} - create container ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName);
-            var createAction = CreateContainerActionFactory.NewCreateContainerAction(null, null, null, null, cfg, containerCfg, plan);
-            if (!createAction.Execute())
+            string stepName = $"{containerName}: create container";
+            logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, stepName);
+            var stepTiming = new StepTiming { StepNumber = plan.CurrentActionStep, StepName = stepName, StartTime = DateTime.Now };
+            stepTimings.Add(stepTiming);
+            try
             {
-                throw new DeployError($"Failed to create container: {containerName}");
+                var createAction = CreateContainerActionFactory.NewCreateContainerAction(null, null, null, null, cfg, containerCfg, plan);
+                if (!createAction.Execute())
+                {
+                    stepTiming.EndTime = DateTime.Now;
+                    throw new DeployError($"Failed to create container: {containerName}");
+                }
+                stepTiming.EndTime = DateTime.Now;
+                logger.Printf("Container '{0}' created successfully", containerName);
             }
-            logger.Printf("Container '{0}' created successfully", containerName);
+            catch
+            {
+                stepTiming.EndTime = DateTime.Now;
+                throw;
+            }
         }
         string defaultUser = cfg.Users.DefaultUser();
         logger.Printf("Setting up SSH connection to container {0}...", containerName);
@@ -494,18 +561,24 @@ public class DeployCommand
                     return;
                 }
                 int overallPct = (int)((double)plan.CurrentActionStep / plan.TotalSteps * 100);
-                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} - {4} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, containerName, actionName);
+                string stepName = $"{containerName}: {actionName}";
+                logger.Printf("=== [Overall: {0}%] [Step: {1}/{2}] Executing: {3} ===", overallPct, plan.CurrentActionStep, plan.TotalSteps, stepName);
+                var stepTiming = new StepTiming { StepNumber = plan.CurrentActionStep, StepName = stepName, StartTime = DateTime.Now };
+                stepTimings.Add(stepTiming);
                 try
                 {
                     var action = ActionRegistry.GetAction(actionName, sshService, aptService, pctService, containerIDStr, cfg, containerCfg);
                     if (!action.Execute())
                     {
+                        stepTiming.EndTime = DateTime.Now;
                         throw new DeployError($"Failed to execute action '{actionName}' for container '{containerName}'");
                     }
+                    stepTiming.EndTime = DateTime.Now;
                     logger.Printf("Action '{0}' for container '{1}' completed successfully", actionName, containerName);
                 }
                 catch (Exception ex)
                 {
+                    stepTiming.EndTime = DateTime.Now;
                     throw new DeployError($"Action '{actionName}' not found for container '{containerName}': {ex.Message}");
                 }
             }
@@ -1061,7 +1134,7 @@ public class DeployCommand
         return new DeployError(errorMsg);
     }
 
-    private void LogDeploySummary(LabConfig? cfg, List<PortFailure> failedPorts, string? rancherPassword = null)
+    private void LogDeploySummary(LabConfig? cfg, List<PortFailure> failedPorts, string? rancherPassword = null, List<StepTiming>? stepTimings = null)
     {
         var logger = Logger.GetLogger("deploy");
         string message = "Deploy Complete!";
@@ -1070,6 +1143,30 @@ public class DeployCommand
             message = "Deploy Complete (with port failures)";
         }
         logger.Printf("=== {0} ===", message);
+        
+        // Display step timings
+        if (stepTimings != null && stepTimings.Count > 0)
+        {
+            logger.Printf("");
+            logger.Printf("Deployment Steps with Timings:");
+            TimeSpan totalDuration = TimeSpan.Zero;
+            foreach (var timing in stepTimings.OrderBy(s => s.StepNumber))
+            {
+                if (timing.Duration.HasValue)
+                {
+                    totalDuration = totalDuration.Add(timing.Duration.Value);
+                    string durationStr = FormatDuration(timing.Duration.Value);
+                    logger.Printf("  [{0,2}] {1,-50} {2}", timing.StepNumber, timing.StepName, durationStr);
+                }
+                else
+                {
+                    logger.Printf("  [{0,2}] {1,-50} (in progress)", timing.StepNumber, timing.StepName);
+                }
+            }
+            logger.Printf("  Total Duration: {0}", FormatDuration(totalDuration));
+            logger.Printf("");
+        }
+        
         logger.Printf("Containers:");
         if (cfg != null)
         {
@@ -1277,6 +1374,25 @@ public class DeployCommand
         else
         {
             logger.Printf("✓ All service ports are responding");
+        }
+    }
+
+    private string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalSeconds < 60)
+        {
+            return $"{duration.TotalSeconds:F1}s";
+        }
+        else if (duration.TotalMinutes < 60)
+        {
+            return $"{duration.TotalMinutes:F1}m {duration.Seconds}s";
+        }
+        else
+        {
+            int hours = (int)duration.TotalHours;
+            int minutes = duration.Minutes;
+            int seconds = duration.Seconds;
+            return $"{hours}h {minutes}m {seconds}s";
         }
     }
 }

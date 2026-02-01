@@ -1,3 +1,9 @@
 logs/*
 src/enva
 **/*.exe
+
+# Binary and build output folders
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
