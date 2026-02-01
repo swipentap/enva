@@ -75,8 +75,9 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
         // Use default NodePorts (detection would require PCTService which is not used in this action)
         int ingressHttpPort = 31523;  // Default fallback
         int ingressHttpsPort = 30490; // Default fallback
-        int sinsDnsTcpPort = 31758;  // Default fallback
-        logger.Printf("Using default NodePorts (HTTP: {0}, HTTPS: {1}, DNS TCP: {2})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort);
+        int sinsDnsTcpPort = 31759;  // Default fallback
+        int sinsDnsUdpPort = 31757;  // Default fallback
+        logger.Printf("Using default NodePorts (HTTP: {0}, HTTPS: {1}, DNS TCP: {2}, DNS UDP: {3})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort, sinsDnsUdpPort);
 
         // Get all k3s nodes for backend
         List<ContainerConfig> workerNodes = new List<ContainerConfig>();
@@ -284,7 +285,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/socat UDP4-LISTEN:53,fork,reuseaddr UDP4:{udpTargetIP}:{sinsDnsTcpPort}
+ExecStart=/usr/bin/socat UDP4-LISTEN:53,fork,reuseaddr UDP4:{udpTargetIP}:{sinsDnsUdpPort}
 Restart=always
 RestartSec=5
 
@@ -326,7 +327,7 @@ WantedBy=multi-user.target
             string setCapCmd = "setcap 'cap_net_bind_service=+ep' /usr/sbin/haproxy 2>/dev/null || echo 'capability already set or setcap not available'";
             haproxySSHService.Execute(setCapCmd, 30, true); // sudo=true
 
-            logger.Printf("DNS UDP forwarder service configured and started (target: {0}:{1})", udpTargetIP, sinsDnsTcpPort);
+            logger.Printf("DNS UDP forwarder service configured and started (target: {0}:{1})", udpTargetIP, sinsDnsUdpPort);
         }
 
         logger.Printf("HAProxy configuration updated successfully with Traefik NodePorts (HTTP: {0}, HTTPS: {1}) and SiNS DNS (TCP: {2})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort);
