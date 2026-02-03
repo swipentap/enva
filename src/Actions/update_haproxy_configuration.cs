@@ -71,13 +71,58 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
 
         try
         {
-
-        // Use default NodePorts (detection would require PCTService which is not used in this action)
+        // Detect Traefik NodePorts from k3s cluster
         int ingressHttpPort = 31523;  // Default fallback
         int ingressHttpsPort = 30490; // Default fallback
+        
+        ContainerConfig? controlNode = Cfg.Containers.FirstOrDefault(ct => ct.Name == "k3s-control");
+        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
+        {
+            SSHConfig k3sSSHConfig = new SSHConfig
+            {
+                ConnectTimeout = Cfg.SSH.ConnectTimeout,
+                BatchMode = Cfg.SSH.BatchMode,
+                DefaultExecTimeout = Cfg.SSH.DefaultExecTimeout,
+                ReadBufferSize = Cfg.SSH.ReadBufferSize,
+                PollInterval = Cfg.SSH.PollInterval,
+                DefaultUsername = defaultUser,
+                LookForKeys = Cfg.SSH.LookForKeys,
+                AllowAgent = Cfg.SSH.AllowAgent,
+                Verbose = Cfg.SSH.Verbose
+            };
+            SSHService k3sSSHService = new SSHService($"{defaultUser}@{controlNode.IPAddress}", k3sSSHConfig);
+            if (k3sSSHService.Connect())
+            {
+                try
+                {
+                    // Get HTTP NodePort
+                    string httpPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"web\")].nodePort}' 2>/dev/null || echo ''";
+                    (string httpPortOutput, _) = k3sSSHService.Execute(httpPortCmd, 30);
+                    if (!string.IsNullOrEmpty(httpPortOutput) && int.TryParse(httpPortOutput.Trim(), out int detectedHttpPort))
+                    {
+                        ingressHttpPort = detectedHttpPort;
+                        logger.Printf("Detected Traefik HTTP NodePort: {0}", ingressHttpPort);
+                    }
+                    
+                    // Get HTTPS NodePort
+                    string httpsPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"websecure\")].nodePort}' 2>/dev/null || echo ''";
+                    (string httpsPortOutput, _) = k3sSSHService.Execute(httpsPortCmd, 30);
+                    if (!string.IsNullOrEmpty(httpsPortOutput) && int.TryParse(httpsPortOutput.Trim(), out int detectedHttpsPort))
+                    {
+                        ingressHttpsPort = detectedHttpsPort;
+                        logger.Printf("Detected Traefik HTTPS NodePort: {0}", ingressHttpsPort);
+                    }
+                }
+                finally
+                {
+                    k3sSSHService.Disconnect();
+                }
+            }
+        }
+        
         int sinsDnsTcpPort = 31759;  // Default fallback
         int sinsDnsUdpPort = 31757;  // Default fallback
-        logger.Printf("Using default NodePorts (HTTP: {0}, HTTPS: {1}, DNS TCP: {2}, DNS UDP: {3})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort, sinsDnsUdpPort);
+        logger.Printf("Using Traefik NodePorts (HTTP: {0}, HTTPS: {1}) and SiNS DNS (TCP: {2}, UDP: {3})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort, sinsDnsUdpPort);
 
         // Get all k3s nodes for backend
         List<ContainerConfig> workerNodes = new List<ContainerConfig>();
@@ -93,7 +138,7 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
         }
 
         // Get k3s control node for ingress (Traefik runs on all nodes)
-        ContainerConfig? controlNode = Cfg.Containers.FirstOrDefault(ct => ct.Name == "k3s-control");
+        // controlNode already defined above, just add to workerNodes
         if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
         {
             workerNodes.Add(controlNode);
