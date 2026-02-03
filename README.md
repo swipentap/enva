@@ -1,8 +1,8 @@
-# EnvA (Go Implementation)
+# EnvA (C# Implementation)
 
-This repository contains the Go implementation of **EnvA**, a CLI tool for managing LXC containers, Docker-based environments, and related infrastructure automation.
+This repository contains the C# implementation of **EnvA**, a CLI tool for managing LXC containers, Docker-based environments, and related infrastructure automation.
 
-The main application code lives under the `src/` directory, which includes the Go module, CLI entrypoint, and supporting packages.
+The main application code lives under the `src/` directory, which includes the C# project, CLI entrypoint, and supporting packages.
 
 ## Quick Start
 
@@ -10,9 +10,9 @@ The main application code lives under the `src/` directory, which includes the G
 # From the repository root
 cd src
 
-go build -o enva main.go
+dotnet build
 
-./enva --help
+dotnet run -- --help
 ```
 
 ## Documentation
@@ -23,6 +23,4 @@ Additional documentation lives under the `docs/` directory:
 - `docs/architecture.md` – High-level architecture and layering (libs, services, actions, commands, orchestration).
 - `docs/configuration.md` – How `enva.yaml` is found and structured conceptually.
 - `docs/development.md` – Build, run, test, and Debian packaging notes.
-
-For more details about the Go implementation itself, also see `src/README.md`.
 
