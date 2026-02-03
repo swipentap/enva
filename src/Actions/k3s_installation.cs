@@ -319,6 +319,48 @@ rm -f /tmp/fix_k3s_service.sh";
                 return false;
             }
             Logger.GetLogger("install_k3s").Printf("kubeconfig setup completed");
+            
+            // Configure Traefik with fixed NodePorts via HelmChartConfig
+            Logger.GetLogger("install_k3s").Printf("Configuring Traefik with fixed NodePorts...");
+            string helmChartConfigYaml = @"apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    service:
+      type: NodePort
+    ports:
+      web:
+        nodePort: 31523
+      websecure:
+        nodePort: 30490
+";
+            string createHelmChartConfigCmd = $"cat > /tmp/traefik-helmchartconfig.yaml << 'EOFHELM'\n{helmChartConfigYaml}EOFHELM";
+            (string helmConfigOutput, int? helmConfigExit) = SSHService.Execute(createHelmChartConfigCmd, null, true); // sudo=True
+            if (helmConfigExit.HasValue && helmConfigExit.Value == 0)
+            {
+                string applyHelmConfigCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl apply -f /tmp/traefik-helmchartconfig.yaml && rm -f /tmp/traefik-helmchartconfig.yaml";
+                (string applyOutput, int? applyExit) = SSHService.Execute(applyHelmConfigCmd, 60, true); // sudo=True
+                if (applyExit.HasValue && applyExit.Value == 0)
+                {
+                    Logger.GetLogger("install_k3s").Printf("Traefik HelmChartConfig created successfully");
+                    // Restart k3s to apply the HelmChartConfig
+                    string restartK3sCmd = "systemctl restart k3s";
+                    SSHService.Execute(restartK3sCmd, 60, true); // sudo=True
+                    Logger.GetLogger("install_k3s").Printf("k3s restarted to apply Traefik NodePort configuration");
+                    Thread.Sleep(10000); // Wait for k3s to restart
+                }
+                else
+                {
+                    Logger.GetLogger("install_k3s").Printf("Warning: Failed to apply Traefik HelmChartConfig: {0}", applyOutput);
+                }
+            }
+            else
+            {
+                Logger.GetLogger("install_k3s").Printf("Warning: Failed to create Traefik HelmChartConfig file: {0}", helmConfigOutput);
+            }
         }
 
         // Verify /dev/kmsg exists (especially important for worker nodes)
