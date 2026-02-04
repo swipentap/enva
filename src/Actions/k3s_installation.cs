@@ -172,6 +172,8 @@ tls-san:
   - {hostname}
 bind-address: 0.0.0.0
 advertise-address: {controlIP}
+disable:
+  - servicelb
 ";
             string createConfigCmd = $"mkdir -p {configDir} && cat > {configFile} << 'EOFCONFIG'\n{configContent}EOFCONFIG";
             (string configOutput, int? configExit) = SSHService.Execute(createConfigCmd, null, true); // sudo=True

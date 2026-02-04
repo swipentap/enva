@@ -66,8 +66,8 @@ ct:
     autostart: true
     template: ubuntu-tmpl
     resources:
-      memory: 1024
-      swap: 1024
+      memory: 2048
+      swap: 2048
       cores: 2
       rootfs_size: 10
     params:
@@ -167,6 +167,7 @@ kubernetes:
     - id: 13
     - id: 14
   actions:
+    - install metallb
     - update haproxy configuration
     - install argocd
     - create github runner secret

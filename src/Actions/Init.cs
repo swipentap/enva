@@ -30,5 +30,6 @@ public static class ActionInit
         ActionRegistry.RegisterAction("install argocd apps", InstallArgoCDAppsActionFactory.NewInstallArgoCDAppsAction);
         ActionRegistry.RegisterAction("create github runner secret", CreateGithubRunnerSecretActionFactory.NewCreateGithubRunnerSecretAction);
         ActionRegistry.RegisterAction("update haproxy configuration", UpdateHaproxyConfigurationActionFactory.NewUpdateHaproxyConfigurationAction);
+        ActionRegistry.RegisterAction("install metallb", InstallMetalLBActionFactory.NewInstallMetalLBAction);
     }
 }

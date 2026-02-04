@@ -441,14 +441,14 @@ public class DeployCommand
                     action = ActionRegistry.GetAction(actionName, sshService, aptService, pctService, null, cfg, null);
                 }
                 catch (Exception ex)
-                {
-                    stepTiming.EndTime = DateTime.Now;
-                    if (sshService != null)
                     {
-                        sshService.Disconnect();
-                    }
+                        stepTiming.EndTime = DateTime.Now;
+                        if (sshService != null)
+                        {
+                            sshService.Disconnect();
+                        }
                     throw new DeployError($"Kubernetes action '{actionName}' not found: {ex.Message}");
-                }
+                    }
                 if (action != null && !action.Execute())
                 {
                     stepTiming.EndTime = DateTime.Now;

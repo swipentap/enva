@@ -71,84 +71,26 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
 
         try
         {
-        // Detect Traefik NodePorts from k3s cluster
-        int ingressHttpPort = 31523;  // Default fallback
-        int ingressHttpsPort = 30490; // Default fallback
+        // Get MetalLB IP pool range from configuration or default
+        string ipPoolStart = "10.11.2.20";
+        string ipPoolEnd = "10.11.2.30";
         
-        ContainerConfig? controlNode = Cfg.Containers.FirstOrDefault(ct => ct.Name == "k3s-control");
-        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
+        // Extract IP pool from network configuration
+        if (!string.IsNullOrEmpty(Cfg.Network))
         {
-            SSHConfig k3sSSHConfig = new SSHConfig
+            // Parse network like "10.11.2.0/24" and use .20-.30 for MetalLB pool
+            string[] parts = Cfg.Network.Split('.');
+            if (parts.Length >= 3)
             {
-                ConnectTimeout = Cfg.SSH.ConnectTimeout,
-                BatchMode = Cfg.SSH.BatchMode,
-                DefaultExecTimeout = Cfg.SSH.DefaultExecTimeout,
-                ReadBufferSize = Cfg.SSH.ReadBufferSize,
-                PollInterval = Cfg.SSH.PollInterval,
-                DefaultUsername = defaultUser,
-                LookForKeys = Cfg.SSH.LookForKeys,
-                AllowAgent = Cfg.SSH.AllowAgent,
-                Verbose = Cfg.SSH.Verbose
-            };
-            SSHService k3sSSHService = new SSHService($"{defaultUser}@{controlNode.IPAddress}", k3sSSHConfig);
-            if (k3sSSHService.Connect())
-            {
-                try
-                {
-                    // Get HTTP NodePort
-                    string httpPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"web\")].nodePort}' 2>/dev/null || echo ''";
-                    (string httpPortOutput, _) = k3sSSHService.Execute(httpPortCmd, 30);
-                    if (!string.IsNullOrEmpty(httpPortOutput) && int.TryParse(httpPortOutput.Trim(), out int detectedHttpPort))
-                    {
-                        ingressHttpPort = detectedHttpPort;
-                        logger.Printf("Detected Traefik HTTP NodePort: {0}", ingressHttpPort);
-                    }
-                    
-                    // Get HTTPS NodePort
-                    string httpsPortCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get svc -n kube-system traefik -o jsonpath='{.spec.ports[?(@.name==\"websecure\")].nodePort}' 2>/dev/null || echo ''";
-                    (string httpsPortOutput, _) = k3sSSHService.Execute(httpsPortCmd, 30);
-                    if (!string.IsNullOrEmpty(httpsPortOutput) && int.TryParse(httpsPortOutput.Trim(), out int detectedHttpsPort))
-                    {
-                        ingressHttpsPort = detectedHttpsPort;
-                        logger.Printf("Detected Traefik HTTPS NodePort: {0}", ingressHttpsPort);
-                    }
-                }
-                finally
-                {
-                    k3sSSHService.Disconnect();
-                }
+                ipPoolStart = $"{parts[0]}.{parts[1]}.{parts[2]}.20";
+                ipPoolEnd = $"{parts[0]}.{parts[1]}.{parts[2]}.30";
             }
         }
+        
+        logger.Printf("Using MetalLB IP pool ({0} to {1}) for Traefik LoadBalancer", ipPoolStart, ipPoolEnd);
         
         int sinsDnsTcpPort = 31759;  // Default fallback
         int sinsDnsUdpPort = 31757;  // Default fallback
-        logger.Printf("Using Traefik NodePorts (HTTP: {0}, HTTPS: {1}) and SiNS DNS (TCP: {2}, UDP: {3})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort, sinsDnsUdpPort);
-
-        // Get all k3s nodes for backend
-        List<ContainerConfig> workerNodes = new List<ContainerConfig>();
-        foreach (var ct in Cfg.Containers)
-        {
-            if (ct.Name == "k3s-worker-1" || ct.Name == "k3s-worker-2" || ct.Name == "k3s-worker-3")
-            {
-                if (!string.IsNullOrEmpty(ct.IPAddress))
-                {
-                    workerNodes.Add(ct);
-                }
-            }
-        }
-
-        // Get k3s control node for ingress (Traefik runs on all nodes)
-        // controlNode already defined above, just add to workerNodes
-        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
-        {
-            workerNodes.Add(controlNode);
-        }
-
-        if (workerNodes.Count == 0)
-        {
-            logger.Printf("No k3s nodes found for ingress backend");
-            return false;
-        }
 
         // Get HTTP and HTTPS ports from haproxy container config
         int httpPort = 80;
@@ -190,13 +132,22 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
     default_backend backend_sins_dns_tcp";
         frontends.Add(dnsTcpFrontend);
 
-        // HTTP backend - forward to k3s ingress HTTP NodePort
+        // HTTP backend - load balance across MetalLB IP pool
         List<string> httpServerLines = new List<string>();
-        for (int i = 0; i < workerNodes.Count; i++)
+        // Parse IP pool range (e.g., 10.11.2.20-10.11.2.30)
+        string[] startParts = ipPoolStart.Split('.');
+        string[] endParts = ipPoolEnd.Split('.');
+        if (startParts.Length == 4 && endParts.Length == 4 && 
+            int.TryParse(startParts[3], out int startOctet) && 
+            int.TryParse(endParts[3], out int endOctet))
         {
-            var server = workerNodes[i];
-            string serverName = $"ingress-http-{i + 1}";
-            httpServerLines.Add($"    server {serverName} {server.IPAddress}:{ingressHttpPort} check");
+            string baseIP = $"{startParts[0]}.{startParts[1]}.{startParts[2]}";
+            for (int i = startOctet; i <= endOctet; i++)
+            {
+                string serverIP = $"{baseIP}.{i}";
+                string serverName = $"traefik-http-{i}";
+                httpServerLines.Add($"    server {serverName} {serverIP}:80 check");
+            }
         }
         string httpBackend = $@"backend backend_ingress_http
     mode tcp
@@ -204,13 +155,19 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
 {string.Join("\n", httpServerLines)}";
         backends.Add(httpBackend);
 
-        // HTTPS backend - forward to k3s ingress HTTPS NodePort
+        // HTTPS backend - load balance across MetalLB IP pool
         List<string> httpsServerLines = new List<string>();
-        for (int i = 0; i < workerNodes.Count; i++)
+        if (startParts.Length == 4 && endParts.Length == 4 && 
+            int.TryParse(startParts[3], out int startOctet2) && 
+            int.TryParse(endParts[3], out int endOctet2))
         {
-            var server = workerNodes[i];
-            string serverName = $"ingress-https-{i + 1}";
-            httpsServerLines.Add($"    server {serverName} {server.IPAddress}:{ingressHttpsPort} check");
+            string baseIP = $"{startParts[0]}.{startParts[1]}.{startParts[2]}";
+            for (int i = startOctet2; i <= endOctet2; i++)
+            {
+                string serverIP = $"{baseIP}.{i}";
+                string serverName = $"traefik-https-{i}";
+                httpsServerLines.Add($"    server {serverName} {serverIP}:443 check");
+            }
         }
         string httpsBackend = $@"backend backend_ingress_https
     mode tcp
@@ -218,7 +175,25 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
 {string.Join("\n", httpsServerLines)}";
         backends.Add(httpsBackend);
 
-        // DNS TCP backend - forward to SiNS DNS TCP NodePort
+        // DNS TCP backend - forward to SiNS DNS TCP NodePort (still use NodePort for DNS)
+        // Get k3s nodes for DNS backend
+        List<ContainerConfig> workerNodes = new List<ContainerConfig>();
+        foreach (var ct in Cfg.Containers)
+        {
+            if (ct.Name == "k3s-worker-1" || ct.Name == "k3s-worker-2" || ct.Name == "k3s-worker-3")
+            {
+                if (!string.IsNullOrEmpty(ct.IPAddress))
+                {
+                    workerNodes.Add(ct);
+                }
+            }
+        }
+        ContainerConfig? controlNode = Cfg.Containers.FirstOrDefault(ct => ct.Name == "k3s-control");
+        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
+        {
+            workerNodes.Add(controlNode);
+        }
+        
         List<string> dnsTcpServerLines = new List<string>();
         for (int i = 0; i < workerNodes.Count; i++)
         {
@@ -375,7 +350,7 @@ WantedBy=multi-user.target
             logger.Printf("DNS UDP forwarder service configured and started (target: {0}:{1})", udpTargetIP, sinsDnsUdpPort);
         }
 
-        logger.Printf("HAProxy configuration updated successfully with Traefik NodePorts (HTTP: {0}, HTTPS: {1}) and SiNS DNS (TCP: {2})", ingressHttpPort, ingressHttpsPort, sinsDnsTcpPort);
+        logger.Printf("HAProxy configuration updated successfully with MetalLB IP pool ({0} to {1}) for Traefik LoadBalancer and SiNS DNS (TCP: {2})", ipPoolStart, ipPoolEnd, sinsDnsTcpPort);
         return true;
         }
         finally
