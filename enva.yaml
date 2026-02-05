@@ -1,84 +1,45 @@
-# Lab CLI Configuration
+# Lab CLI Configuration - K3s with ArgoCD
 
-# Environments configuration
+# Environments configuration (required infrastructure)
 environments:
-  prod:
-    id-base: 2000
-    network: "10.11.2.0/24"
-    postgres_host: "10.11.2.18"
-    dns_server: "10.11.2.5"
-    domain: "prod.net"
-    certificate_path: "/etc/haproxy/wildcard.prod.net.pem"
-    certificate_source_path: "certs/_.prod.net_haproxy.pem"
-    lxc:
-      host: "root@10.11.2.4"
-      storage: "sdb"
-      bridge: "vmbr0"
-      template_dir: "/var/lib/vz/template/cache"
-      gateway_octet: 253  # Last octet of gateway IP
-    services:
-      github_runner:
-        # token: set via ENVA_GITHUB_TOKEN environment variable
-        organization: "swipentap"
-        replicas: 3
-        label: "k3s-prod"
-        name_prefix: "k3s-prod-runner"
-        group: "k3s-prod"
-      certa:
-        image: "judyandiealvarez/certa:latest"
-        port: 30081
-        namespace: "certa"
-        replicas: 1
-        name: "certa"
-        database_host: "10.11.2.18"
-        database_port: 5432
-        database_name: "certa"
-        database_user: "postgres"
-        database_password: "postgres"
-  test:
-    id-base: 3000
-    network: "10.11.3.0/24"
-    postgres_host: "10.11.3.18"
-    dns_server: "10.11.3.5"
-    domain: "test.net"
-    lxc:
-      host: "root@10.11.3.4"
-      storage: "sdb"
-      bridge: "vmbr0"
-      template_dir: "/var/lib/vz/template/cache"
-      gateway_octet: 253  # Last octet of gateway IP
-    services:
-      github_runner:
-        # token: set via ENVA_GITHUB_TOKEN environment variable
-        organization: "swipentap"
-        replicas: 3
-        label: "k3s-test"
-        name_prefix: "k3s-test-runner"
-        group: "k3s-test"
   dev:
     id-base: 4000
     network: "10.11.4.0/24"
-    postgres_host: "10.11.4.18"
-    dns_server: "10.11.4.5"
+    dns_server: "10.11.4.17"
     domain: "dev.net"
+    branch: "main"
     lxc:
-      host: "root@10.11.4.4"
+      host: "root@10.11.4.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
       bridge: "vmbr0"
       template_dir: "/var/lib/vz/template/cache"
       gateway_octet: 253  # Last octet of gateway IP
-    services:
-      github_runner:
-        # token: set via ENVA_GITHUB_TOKEN environment variable
-        organization: "swipentap"
-        replicas: 3
-        label: "k3s-dev"
-        name_prefix: "k3s-dev-runner"
-        group: "k3s-dev"
+  test:
+    id-base: 3000
+    network: "10.11.3.0/24"
+    dns_server: "10.11.3.17"
+    domain: "test.net"
+    branch: "main"
+    lxc:
+      host: "root@10.11.3.4" # do not use ssh or pct, use configured local kubectl
+      storage: "sdb"
+      bridge: "vmbr0"
+      template_dir: "/var/lib/vz/template/cache"
+      gateway_octet: 253  # Last octet of gateway IP
+  prod:
+    id-base: 2000
+    network: "10.11.2.0/24"
+    dns_server: "10.11.2.17"
+    domain: "prod.net"
+    branch: "main"
+    lxc:
+      host: "root@10.11.2.4" # do not use ssh or pct, use configured local kubectl
+      storage: "sdb"
+      bridge: "vmbr0"
+      template_dir: "/var/lib/vz/template/cache"
+      gateway_octet: 253  # Last octet of gateway IP
 
-apt-cache-ct: apt-cache 
-
-# Template generation configuration
+# Template generation configuration (required for building containers)
 templates:
   - name: ubuntu-tmpl
     id: 10
@@ -91,8 +52,7 @@ templates:
       cores: 4
       rootfs_size: 20
     actions:
-      - apt cache proxy configuration
-#      - AppArmor parser stub
+      - locale configuration
       - apt sources fix
       - system upgrade
       - openssh-server installation
@@ -100,47 +60,8 @@ templates:
       - base tools installation
       - template cleanup
       - template archive creation
+
 ct:
-  - name: apt-cache
-    id: 20
-    ip: 20  # Last octet only
-    hostname: "apt-cache"
-    autostart: true
-    template: ubuntu-tmpl
-    resources:
-      memory: 2048
-      swap: 2048
-      cores: 4
-      rootfs_size: 20
-    actions:
-      - cloud-init wait
-      - AppArmor parser stub
-      - disable automatic apt units
-      - systemd sysctl override
-      - apt-cacher-ng installation
-      - apt-cacher-ng port configuration
-      - apt-cacher-ng service enablement
-  - name: pgsql
-    id: 18
-    ip: 18  # Last octet only
-    hostname: "pgsql"
-    autostart: true
-    template: ubuntu-tmpl
-    resources:
-      memory: 2048
-      swap: 2048
-      cores: 2
-      rootfs_size: 30
-    params:
-      version: "17"
-      port: 5432
-      data_dir: "/var/lib/postgresql/data"
-    actions:
-      - cloud-init wait
-      - postgresql installation
-      - postgresql service configuration
-      - postgresql files configuration
-      - postgresql password setup
   - name: haproxy
     id: 17
     ip: 17  # Last octet only
@@ -148,8 +69,8 @@ ct:
     autostart: true
     template: ubuntu-tmpl
     resources:
-      memory: 1024
-      swap: 1024
+      memory: 2048
+      swap: 2048
       cores: 2
       rootfs_size: 10
     params:
@@ -159,37 +80,13 @@ ct:
     actions:
       - cloud-init wait
       - haproxy installation
-      - haproxy configuration
+      - name: haproxy configuration
+        properties:
+          http_port: 80
+          https_port: 443
+          stats_port: 8404
       - haproxy systemd override
       - haproxy service enablement
-  - name: dns
-    id: 19
-    ip: 19  # Last octet only
-    hostname: "dns"
-    autostart: true
-    template: ubuntu-tmpl
-    privileged: true
-    nested: true
-    resources:
-      memory: 2048
-      swap: 2048
-      cores: 4
-      rootfs_size: 20
-    params:
-      dns_port: 53
-      web_port: 80
-      postgres_port: 5432
-      postgres_db: "dns_server"
-      postgres_user: "postgres"
-      postgres_password: "postgres"
-    actions:
-      - cloud-init wait
-      - dotnet installation
-      - disable systemd resolved
-      - sins dns installation
-      - sins dns service configuration
-      - sins dns service enablement
-      - configure dns records
   - name: k3s-control
     id: 11
     ip: 11  # Last octet only
@@ -209,7 +106,7 @@ ct:
       - cloud-init wait
       - lxc sysctl access configuration
       - k3s installation
-      - install k3s node watcher
+      - install k3s node watcher  # NOT REQUESTED (supporting action)
   - name: k3s-worker-1
     id: 12
     ip: 12  # Last octet only
@@ -219,14 +116,15 @@ ct:
     privileged: true
     nested: true
     resources:
-      memory: 4096
-      swap: 4096
+      memory: 16384
+      swap: 16384
       cores: 8
       rootfs_size: 40
     actions:
       - cloud-init wait
       - lxc sysctl access configuration
       - k3s installation
+      - glusterfs server installation
   - name: k3s-worker-2
     id: 13
     ip: 13  # Last octet only
@@ -236,14 +134,15 @@ ct:
     privileged: true
     nested: true
     resources:
-      memory: 4096
-      swap: 4096
+      memory: 16384
+      swap: 16384
       cores: 8
       rootfs_size: 40
     actions:
       - cloud-init wait
       - lxc sysctl access configuration
       - k3s installation
+      - glusterfs server installation
   - name: k3s-worker-3
     id: 14
     ip: 14  # Last octet only
@@ -253,76 +152,15 @@ ct:
     privileged: true
     nested: true
     resources:
-      memory: 4096
-      swap: 4096
+      memory: 16384
+      swap: 16384
       cores: 8
       rootfs_size: 40
     actions:
       - cloud-init wait
       - lxc sysctl access configuration
       - k3s installation
-  - name: glusterfs-node-1
-    id: 21
-    ip: 21  # Last octet only
-    hostname: "glusterfs-node-1"
-    autostart: true
-    template: ubuntu-tmpl
-    privileged: true
-    nested: true
-    resources:
-      memory: 4096
-      swap: 4096
-      cores: 8
-      rootfs_size: 40
-    actions:
-      - cloud-init wait
       - glusterfs server installation
-  - name: glusterfs-node-2
-    id: 22
-    ip: 22  # Last octet only
-    hostname: "glusterfs-node-2"
-    autostart: true
-    template: ubuntu-tmpl
-    privileged: true
-    nested: true
-    resources:
-      memory: 4096
-      swap: 4096
-      cores: 8
-      rootfs_size: 40
-    actions:
-      - cloud-init wait
-      - glusterfs server installation
-  - name: glusterfs-node-3
-    id: 23
-    ip: 23  # Last octet only
-    hostname: "glusterfs-node-3"
-    autostart: true
-    template: ubuntu-tmpl
-    privileged: true
-    nested: true
-    resources:
-      memory: 4096
-      swap: 4096
-      cores: 8
-      rootfs_size: 40
-    actions:
-      - cloud-init wait
-      - glusterfs server installation
-  - name: backup
-    id: 24
-    ip: 24  # Last octet only
-    hostname: "backup"
-    autostart: true
-    template: ubuntu-tmpl
-    resources:
-      memory: 2048
-      swap: 2048
-      cores: 2
-      rootfs_size: 100
-    actions:
-      - cloud-init wait
-      - base tools installation
 
 kubernetes:
   control:
@@ -332,97 +170,48 @@ kubernetes:
     - id: 13
     - id: 14
   actions:
-    - install cockroachdb
-    - install github runner
-    - install certa
-    - install k3s node watcher
+    - install metallb
+    - update haproxy configuration
+    - install dnsdist
+    - install argocd
+    - create github runner secret
+    - name: install argocd apps
+      properties:
+        repo_url: "https://github.com/swipentap/envaapps"
+        path: "applications"
+        target_revision: "main"
 
-# Script timeouts (in seconds)
+# NOT REQUESTED: Script timeouts (in seconds)
 timeouts:
-  apt_cache: 900
   ubuntu_template: 1200
 
-# LXC constants (deprecated - use environments section)
-# These values are kept for backward compatibility but will be overridden by environment selection
-
-# User configuration
+# NOT REQUESTED: User configuration
 users:
   - name: "jaal"
     password: "jaal123"
     sudo_group: "sudo"
 
-# Network services
+# Network services (argocd ports are needed for the requested services)
 services:
-  apt_cache:
-    port: 80
-    name: apt-cache
-  postgresql:
-    port: 5432
-    username: postgres
-    password: postgres
-    database: postgres
-    name: pgsqlns
-  haproxy:
-    http_port: 80
-    https_port: 443
-    stats_port: 8404
-    name: haproxy
-  rancher:
-    port: 30443
-    image: "rancher/rancher:latest"
-    name: rancher
-  cockroachdb:
-    version: "v25.2.4"
-    nodes: 3
-    storage: "10Gi"
-    sql_port: 32657
-    http_port: 30080
-    grpc_port: 32658
-    password: "root123"
-    name: db
-  certa:
-    image: "judyandiealvarez/certa:latest"
-    port: 30081
-    namespace: "certa"
-    replicas: 1
-    name: "certa"
-    database_host: "10.11.2.18"
-    database_port: 5432
-    database_name: "certa"
-    database_user: "postgres"
-    database_password: "postgres"
+  argocd:
+    ports:
+      - name: argocd
+        port: 30080
+        type: http
 
-# DNS servers
 dns:
   servers:
     - "8.8.8.8"
     - "8.8.4.4"
 
-# Docker configuration
-docker:
-  version: "28.4.0"
-  repository: "noble"
-  release: "stable"
-  ubuntu_release: "24.04"
-
-# Base templates and patterns
 template_config:
   base:
     - "ubuntu-25.04-standard_25.04-1.1_amd64.tar.zst"
-#    - "ubuntu-24.04-standard_24.04-1_amd64.tar.zst"
-#    - "ubuntu-24.10-standard_24.10-1_amd64.tar.zst"
   patterns:
     ubuntu: "ubuntu-25.04-template_{date}_amd64.tar.zst"
   preserve:
-    - "ubuntu-24.10-standard_24.10-1_amd64.tar.zst"
     - "ubuntu-25.04-template_*.tar.zst"
 
-# SSH configuration
-ssh:
-  connect_timeout: 10
-  batch_mode: true
-
-# Wait/retry configuration
 waits:
   container_startup: 20
   container_ready_max_attempts: 30
@@ -438,81 +227,6 @@ glusterfs:
   mount_point: "/mnt/gluster"
   replica_count: 3  # Replicate across 3 GlusterFS nodes
   cluster_nodes:
-    - id: 21
-    - id: 22
-    - id: 23
-
-# Backup configuration
-backup:
-  container_id: 24
-  backup_dir: "/backup"
-  name_prefix: "backup"
-  items:
-    - name: "k3s-control-data"
-      source_container_id: 11
-      source_path: "/var/lib/rancher/k3s"
-      archive_base: "/var/lib/rancher"
-      archive_path: "k3s"
-    - name: "k3s-control-config"
-      source_container_id: 11
-      source_path: "/etc/rancher/k3s"
-      archive_base: "/etc/rancher"
-      archive_path: "k3s"
-    - name: "k3s-worker-1-data"
-      source_container_id: 12
-      source_path: "/var/lib/rancher/k3s"
-      archive_base: "/var/lib/rancher"
-      archive_path: "k3s"
-    - name: "k3s-worker-1-config"
-      source_container_id: 12
-      source_path: "/etc/rancher/node"
-      archive_base: "/etc/rancher"
-      archive_path: "node"
-    - name: "k3s-worker-1-service-env"
-      source_container_id: 12
-      source_path: "/etc/systemd/system/k3s-agent.service.env"
-    - name: "k3s-worker-2-data"
-      source_container_id: 13
-      source_path: "/var/lib/rancher/k3s"
-      archive_base: "/var/lib/rancher"
-      archive_path: "k3s"
-    - name: "k3s-worker-2-config"
-      source_container_id: 13
-      source_path: "/etc/rancher/node"
-      archive_base: "/etc/rancher"
-      archive_path: "node"
-    - name: "k3s-worker-2-service-env"
-      source_container_id: 13
-      source_path: "/etc/systemd/system/k3s-agent.service.env"
-    - name: "k3s-worker-3-data"
-      source_container_id: 14
-      source_path: "/var/lib/rancher/k3s"
-      archive_base: "/var/lib/rancher"
-      archive_path: "k3s"
-    - name: "k3s-worker-3-config"
-      source_container_id: 14
-      source_path: "/etc/rancher/node"
-      archive_base: "/etc/rancher"
-      archive_path: "node"
-    - name: "k3s-worker-3-service-env"
-      source_container_id: 14
-      source_path: "/etc/systemd/system/k3s-agent.service.env"
-    - name: "pgsql-data"
-      source_container_id: 18
-      source_path: "/var/lib/postgresql/data"
-      archive_base: "/var/lib/postgresql"
-      archive_path: "data"
-    - name: "pgsql-config"
-      source_container_id: 18
-      source_path: "/etc/postgresql"
-      archive_base: "/etc"
-      archive_path: "postgresql"
-    - name: "haproxy-config"
-      source_container_id: 17
-      source_path: "/etc/haproxy/haproxy.cfg"
-    - name: "glusterfs-data"
-      source_container_id: 11
-      source_path: "/mnt/gluster"
-      archive_base: "/mnt"
-      archive_path: "gluster"
-
+    - id: 12
+    - id: 13
+    - id: 14

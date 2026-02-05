@@ -1,2 +1,13 @@
 logs/*
+src/logs/*.log
 src/enva
+**/*.exe
+
+# Binary and build output folders
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+
+# Cursor IDE
+.cursor/

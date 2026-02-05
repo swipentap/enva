@@ -1,0 +1,46 @@
+# PostgreSQL Backend Configuration for HAProxy
+# Add this to your HAProxy configuration file
+# 
+# Note: PostgreSQL is stateful, so we route to the primary instance only
+# The NodePort service (30432) already routes to the primary, so we can use any node
+
+# Backend for PostgreSQL - routes to primary instance only
+backend postgresql_backend
+    mode tcp
+    balance first
+    option tcplog
+    # Health check: Simple TCP check is sufficient
+    # The NodePort service selector ensures we only route to primary
+    # Kubernetes automatically updates routing when primary changes
+    option tcp-check
+    tcp-check connect
+    # Primary server (NodePort service already routes to primary via selector)
+    # Using worker nodes only (control node has taint)
+    # Note: NodePort service selector is 'role=primary', so all nodes route to primary
+    server postgresql-worker-1 10.11.4.12:30432 check
+    server postgresql-worker-2 10.11.4.13:30432 check backup
+    server postgresql-worker-3 10.11.4.14:30432 check backup
+
+# Frontend for PostgreSQL (listens on port 5432)
+frontend postgresql_frontend
+    bind *:5432
+    mode tcp
+    default_backend postgresql_backend
+
+# Alternative: If pgsql-check doesn't work, use simple TCP check
+# The NodePort service already ensures routing to primary via selector
+# backend postgresql_backend
+#     mode tcp
+#     balance first
+#     option tcplog
+#     option tcp-check
+#     tcp-check connect
+#     server postgresql-worker-1 10.11.4.12:30432 check
+#     server postgresql-worker-2 10.11.4.13:30432 check backup
+#     server postgresql-worker-3 10.11.4.14:30432 check backup
+#
+# Note: The NodePort service (postgresql-rw-nodeport) has selector:
+#   cnpg.io/cluster: postgresql
+#   role: primary
+# This means Kubernetes automatically routes to the primary pod,
+# even if it moves to a different node during failover.
