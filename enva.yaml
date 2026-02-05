@@ -19,7 +19,7 @@ environments:
     network: "10.11.3.0/24"
     dns_server: "10.11.3.17"
     domain: "test.net"
-    branch: "main"
+    branch: "test"
     lxc:
       host: "root@10.11.3.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
@@ -31,7 +31,7 @@ environments:
     network: "10.11.2.0/24"
     dns_server: "10.11.2.17"
     domain: "prod.net"
-    branch: "main"
+    branch: "dev"
     lxc:
       host: "root@10.11.2.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
