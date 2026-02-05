@@ -1,9 +1,0 @@
-[submodule "charts-repo"]
-	path = charts-repo
-	url = https://github.com/swipentap/charts.git
-[submodule "SiNS"]
-	path = SiNS
-	url = https://github.com/swipentap/SiNS.git
-[submodule "envaapps"]
-	path = envaapps
-	url = https://github.com/swipentap/envaapps
