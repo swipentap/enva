@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_run:
+    workflows: ['Test and Create Tag']
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -17,8 +20,25 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            git fetch --tags --force
+            TAG=$(git tag --points-at HEAD | grep '^v' | sort -V | tail -1)
+            VERSION=${TAG#v}
+            [ -z "$VERSION" ] && VERSION="0.0.1"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -44,7 +64,7 @@ jobs:
             VERSION="${{ github.event.inputs.version || '0.0.1' }}"
             VERSION=${VERSION#v}
           else
-            VERSION=${GITHUB_REF#refs/tags/v}
+            VERSION="${{ steps.version.outputs.version }}"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           mkdir -p dist
