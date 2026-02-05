@@ -7,34 +7,113 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  deploy:
-    runs-on: pct-prod
+  build-test-release:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Build enva
+      - name: Build
+        run: dotnet build src/Enva.csproj -c Release
+
+      - name: Run unit tests
+        run: dotnet test src/Enva.csproj -c Release --verbosity minimal
+
+      - name: Publish osx-arm64
+        run: dotnet publish src/Enva.csproj -c Release -r osx-arm64 --self-contained true -o publish/osx-arm64
+
+      - name: Publish osx-x64
+        run: dotnet publish src/Enva.csproj -c Release -r osx-x64 --self-contained true -o publish/osx-x64
+
+      - name: Create tarballs and compute sha256
+        id: tarballs
         run: |
-          dotnet publish src/Enva.csproj -c Release -r linux-x64 --self-contained true -o publish
+          VERSION="0.0.1-main.${{ github.run_number }}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          mkdir -p dist
+          cp publish/osx-arm64/Enva publish/osx-arm64/enva
+          tar -czvf dist/enva-${VERSION}-darwin-arm64.tar.gz -C publish/osx-arm64 enva
+          cp publish/osx-x64/Enva publish/osx-x64/enva
+          tar -czvf dist/enva-${VERSION}-darwin-amd64.tar.gz -C publish/osx-x64 enva
+          SHA_ARM=$(shasum -a 256 dist/enva-${VERSION}-darwin-arm64.tar.gz | awk '{print $1}')
+          SHA_AMD=$(shasum -a 256 dist/enva-${VERSION}-darwin-amd64.tar.gz | awk '{print $1}')
+          echo "SHA_ARM=$SHA_ARM" >> $GITHUB_OUTPUT
+          echo "SHA_AMD=$SHA_AMD" >> $GITHUB_OUTPUT
 
-      - name: Install enva to system
-        run: |
-          mkdir -p /usr/local/lib/enva
-          cp -r publish/* /usr/local/lib/enva/
-          ln -sf /usr/local/lib/enva/Enva /usr/local/bin/enva
-          chmod +x /usr/local/bin/enva
-
-      - name: Verify installation
-        run: which enva && enva --help
-
-      - name: Run redeploy prod
+      - name: Create Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.tarballs.outputs.VERSION }}
+          name: v${{ steps.tarballs.outputs.VERSION }}
+          files: |
+            dist/enva-*-darwin-arm64.tar.gz
+            dist/enva-*-darwin-amd64.tar.gz
+          generate_release_notes: true
         env:
-          ENVA_GITHUB_TOKEN: ${{ secrets.ENVA_GITHUB_TOKEN }}
-        run: enva redeploy prod
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update homebrew-enva formula (binary)
+        env:
+          ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
+        run: |
+          [ -z "$ACTIONS_GITHUB_TOKEN" ] && echo "ACTIONS_GITHUB_TOKEN not set, skipping formula update" && exit 0
+          VERSION="${{ steps.tarballs.outputs.VERSION }}"
+          SHA_ARM="${{ steps.tarballs.outputs.SHA_ARM }}"
+          SHA_AMD="${{ steps.tarballs.outputs.SHA_AMD }}"
+          git clone "https://${ACTIONS_GITHUB_TOKEN}@github.com/swipentap/homebrew-enva.git" homebrew-enva
+          cd homebrew-enva
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cat > Formula/enva.rb << FORMULA
+          # typed: false
+          # frozen_string_literal: true
+
+          class Enva < Formula
+            desc "CLI for enva lab deployment (K3s, LXC, HAProxy, ArgoCD)"
+            homepage "https://github.com/swipentap/enva"
+            version "${VERSION}"
+
+            on_arm do
+              url "https://github.com/swipentap/enva/releases/download/v\#{version}/enva-\#{version}-darwin-arm64.tar.gz"
+              sha256 "${SHA_ARM}"
+            end
+            on_intel do
+              url "https://github.com/swipentap/enva/releases/download/v\#{version}/enva-\#{version}-darwin-amd64.tar.gz"
+              sha256 "${SHA_AMD}"
+            end
+
+            head "https://github.com/swipentap/enva.git", branch: "main"
+
+            depends_on "dotnet" => :build if build.head?
+
+            def install
+              if build.head?
+                rid = Hardware::CPU.arm? ? "osx-arm64" : "osx-x64"
+                system "dotnet", "publish", "src/Enva.csproj",
+                       "-c", "Release", "-r", rid, "--self-contained", "true", "-o", "publish"
+                libexec.install Dir["publish/*"]
+                (bin/"enva").write <<~EOS
+                  #!/bin/sh
+                  exec "\#{libexec}/Enva" "\$@"
+                EOS
+                chmod 0755, bin/"enva"
+              else
+                bin.install "enva"
+              end
+            end
+
+            test do
+              assert_match "enva", shell_output("\#{bin}/enva --help", 0)
+            end
+          end
+          FORMULA
+          git add Formula/enva.rb
+          git diff --staged --quiet || (git commit -m "enva ${VERSION} (binary)" && git push)
