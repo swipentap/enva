@@ -97,6 +97,7 @@ jobs:
           VERSION="${{ steps.tarballs.outputs.VERSION }}"
           SHA_ARM="${{ steps.tarballs.outputs.SHA_ARM }}"
           SHA_AMD="${{ steps.tarballs.outputs.SHA_AMD }}"
+          HASH='#'
           git clone "https://${ACTIONS_GITHUB_TOKEN}@github.com/swipentap/homebrew-enva.git" homebrew-enva
           cd homebrew-enva
           git config user.name "github-actions[bot]"
@@ -111,11 +112,11 @@ jobs:
             version "${VERSION}"
 
             on_arm do
-              url "https://github.com/swipentap/enva/releases/download/v\#{version}/enva-\#{version}-darwin-arm64.tar.gz"
+              url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-arm64.tar.gz"
               sha256 "${SHA_ARM}"
             end
             on_intel do
-              url "https://github.com/swipentap/enva/releases/download/v\#{version}/enva-\#{version}-darwin-amd64.tar.gz"
+              url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-amd64.tar.gz"
               sha256 "${SHA_AMD}"
             end
 
@@ -131,7 +132,7 @@ jobs:
                 libexec.install Dir["publish/*"]
                 (bin/"enva").write <<~EOS
                   #!/bin/sh
-                  exec "\#{libexec}/Enva" "\$@"
+                  exec "${HASH}{libexec}/Enva" "\$@"
                 EOS
                 chmod 0755, bin/"enva"
               else
@@ -140,7 +141,7 @@ jobs:
             end
 
             test do
-              assert_match "enva", shell_output("\#{bin}/enva --help", 0)
+              assert_match "enva", shell_output("${HASH}{bin}/enva --help", 0)
             end
           end
           FORMULA
