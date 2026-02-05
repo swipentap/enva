@@ -1,62 +1,61 @@
 ### EnvA Architecture
 
-EnvA is structured as a Go module with a clear separation between configuration, services, actions, CLI entrypoint, and orchestration.
+EnvA is a C# (.NET 9) application with a clear separation between configuration, services, actions, CLI entrypoint, and orchestration.
 
-#### High-Level Components
+#### High-level components
 
-- **`main.go`**: Cobra-based CLI entrypoint; wires commands (`deploy`, `cleanup`, `redeploy`, `status`, `backup`, `restore`) to their implementations and initializes logging and configuration.
-- **`libs/`**: Core library layer.
-  - **`config.go`**: Configuration loading/parsing; converts YAML into `LabConfig` and related structs.
-  - **`logger.go`**: Logging initialization and helpers (`InitLogger`, `GetLogger`, log levels, file handling).
-  - **`common.go` / `interfaces.go` / `command.go`**: Shared helpers, interfaces, and command abstractions used by services and actions.
-  - **`template.go`**: Template rendering utilities (e.g., configuration files pushed into containers).
-- **`services/`**: Abstractions over external systems.
-  - **`ssh.go`**: SSH service for running commands remotely (with optional verbose echoing of stdout).
-  - **`lxc.go` / `pct.go`**: LXC/PCT wrappers for container lifecycle management.
-  - **`apt.go`**: APT-related helpers.
-  - **`template.go`**: Service for applying templates remotely.
-- **`cli/`**: Thin wrappers around system tools used by services and actions.
-  - Files like `apt.go`, `docker.go`, `cloudinit.go`, `pct.go`, `systemctl.go`, `vzdump.go`, etc. each encapsulate calls to a specific command-line tool with consistent logging and error handling.
-- **`actions/`**: Higher-level units of work executed as steps in deployment/cleanup flows.
-  - Examples include configuring APT cache, installing base tools, installing Docker/k3s/PostgreSQL, configuring HAProxy, setting sysctls, creating templates, and cleaning them up.
-  - `plan.go` and `registry.go` coordinate the ordered list of actions for a deployment.
-- **`commands/`**: User-facing operations invoked by the CLI.
-  - **`deploy.go`**: Implements the multi-step deployment flow using `actions` and `services`.
-  - **`cleanup.go`**: Removes containers/templates and performs environment cleanup.
-  - **`status.go`**: Inspects the current environment and reports status.
-  - **`backup.go` / `restore.go`**: Backup/restore operations driven by configuration.
-- **`orchestration/`**: Orchestrators for specific stacks.
-  - **`kubernetes.go`**: Logic for standing up and configuring k3s clusters.
-  - **`gluster.go`**: Logic for GlusterFS orchestration.
+- **`Program.cs`**: System.CommandLine-based CLI entrypoint; wires commands (`init`, `deploy`, `cleanup`, `redeploy`, `status`) to their implementations and initializes logging and config resolution.
+- **`Libs/`**: Core library layer.
+  - **`ConfigLoader.cs`**: Configuration loading/parsing; converts YAML into `LabConfig` and related types.
+  - **`Logger.cs`**: Logging initialization and helpers (`InitLogger`, `GetLogger`, log levels, file handling).
+  - **`LabConfig.cs`**, **`EnvaConfig.cs`**: Typed configuration and environment selection.
+  - **`Template.cs`**: Template rendering utilities.
+- **`Services/`**: Abstractions over external systems.
+  - **`SSHService.cs`**: SSH service for running commands remotely (with optional verbose echoing of stdout).
+  - **`LXCService.cs`** / **`PCTService.cs`**: LXC/PCT wrappers for container lifecycle management.
+  - **`APTService.cs`**: APT-related helpers.
+  - **`TemplateService.cs`**: Service for applying templates remotely.
+- **`CLI/`**: Thin wrappers around system tools used by services and actions.
+  - Files such as `Apt.cs`, `PCT.cs`, `CloudInit.cs`, `Files.cs`, `SystemCtl.cs`, `Vzdump.cs`, etc., encapsulate calls to specific command-line tools with consistent logging and error handling.
+- **`Actions/`**: Higher-level units of work executed as steps in deployment/cleanup flows.
+  - Examples: APT cache configuration, base tools installation, k3s installation, HAProxy configuration, sysctl overrides, template creation and cleanup.
+  - **`Init.cs`** and **`Registry.cs`** coordinate the ordered list of actions for a deployment.
+- **`Commands/`**: User-facing operations invoked by the CLI.
+  - **`DeployCommand.cs`**: Multi-step deployment flow using actions and services.
+  - **`CleanupCommand.cs`**: Removes containers/templates and performs environment cleanup.
+  - **`StatusCommand.cs`**: Inspects the current environment and reports status.
+  - **`InitCommand.cs`**: Writes the embedded example `enva.yaml` to disk.
+  - **`UpdateControlNodeSshKeyCommand.cs`**, **`GetReadyKubectlCommand.cs`**: Post-deploy helpers for SSH and kubectl.
+- **`Orchestration/`**: Orchestrators for specific stacks.
+  - **`Kubernetes.cs`**: Logic for standing up and configuring k3s clusters (including Rancher, ArgoCD, cert-manager, etc.).
+  - **`Gluster.cs`**: GlusterFS orchestration.
 
-#### Execution Flow
+#### Execution flow
 
-1. **CLI Entry**
-   - `main.go` initializes logging based on `-v/--verbose` and constructs the Cobra command tree.
-   - Global flags (`--config`, `--verbose`) are bound to package-level variables.
+1. **CLI entry**
+   - `Program.cs` initializes logging based on `-v/--verbose` and builds the System.CommandLine command tree.
+   - Global options (`--config`, `--verbose`, `--github-token`) are bound and passed into command handlers.
 
-2. **Config Resolution**
-   - When a command runs, it calls `getConfig(environment)`.
-   - `getConfig`:
-     - Determines the config path (explicit `--config`, executable directory `enva.yaml`, or current directory fallback).
-     - Uses `libs.LoadConfig` to parse YAML.
-     - Uses `libs.FromDict` to build a typed `LabConfig`, including selected environment.
+2. **Config resolution**
+   - When a command runs, it calls `GetConfig(environment)`.
+   - `GetConfig`:
+     - Resolves the config path (explicit `--config`, then `AppContext.BaseDirectory`/`enva.yaml`, then current directory `enva.yaml`).
+     - Uses `ConfigLoader.LoadConfig` to parse YAML.
+     - Uses `ConfigLoader.ToLabConfig` to build a typed `LabConfig` for the selected environment.
 
-3. **Service Wiring**
-   - `LXCService` and `PCTService` are instantiated from `services` using SSH configuration from `LabConfig`.
+3. **Service wiring**
+   - `LXCService` and `PCTService` are created from config (SSH host and options from `LabConfig`).
    - These services hide raw SSH/CLI details from the higher-level commands.
 
-4. **Command Logic**
-   - High-level command structs from `commands/` (`NewDeploy`, `NewCleanup`, etc.) receive `LabConfig` and services.
-   - They orchestrate `actions` in a defined order, logging each step and handling partial failures according to design (e.g., `redeploy` ignores cleanup errors to match the original Python behavior).
+4. **Command logic**
+   - Command classes in `Commands/` receive `LabConfig` and services.
+   - They orchestrate actions in a defined order, logging each step and handling failures (e.g. `redeploy` continues after cleanup errors).
 
-5. **Actions and CLI Wrappers**
-   - Each `actions/*.go` file encapsulates one logical step (e.g., "install Docker", "configure HAProxy", "set sysctl overrides").
-   - Actions use `services` APIs, which in turn delegate to `cli` helpers for concrete commands (e.g., `pct`, `systemctl`, `docker`).
+5. **Actions and CLI wrappers**
+   - Each action in `Actions/` encapsulates one logical step (e.g. install k3s, configure HAProxy).
+   - Actions use service APIs, which delegate to `CLI/` helpers for concrete commands (e.g. `pct`, `systemctl`).
 
-#### Design Goals
+#### Design goals
 
-- **Parity with original Python implementation**: logging behavior, error handling, and step sequencing are kept close to the original.
-- **Testable units**: services and actions are broken down so they can be tested in isolation where practical.
-- **Clear layering**: top-level commands → actions → services → CLI wrappers.
-
+- **Testable units**: Services and actions are structured so they can be tested in isolation where practical.
+- **Clear layering**: Commands → actions → services → CLI wrappers.

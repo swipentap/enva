@@ -1,9 +1,9 @@
-### Development and Build
+### Development and build
 
 #### Requirements
 
-- Go toolchain (version as specified in `go.mod`).
-- Access to a Proxmox/LXC environment for full integration testing.
+- .NET 9 SDK.
+- Access to an LXC/Proxmox environment for full integration testing.
 
 #### Build
 
@@ -11,54 +11,48 @@
 # From repository root
 cd src
 
-go build -o enva main.go
+dotnet build -c Release
 ```
 
 #### Run
 
 ```bash
 # Show help
-./enva --help
+dotnet run -c Release -- --help
 
 # Use a specific config file
-./enva -c /path/to/enva.yaml deploy lab
+dotnet run -c Release -- -c /path/to/enva.yaml deploy dev
 
-# Enable verbose SSH output
-./enva -v deploy lab
+# Verbose SSH output
+dotnet run -c Release -- -v deploy dev
 ```
 
-#### Testing / Validation
-
-- Unit tests (if present) can be run with:
+#### Publish (single-file)
 
 ```bash
 cd src
+dotnet publish -c Release -r osx-arm64 --self-contained true
+# Binary: src/bin/Release/net9.0/osx-arm64/publish/Enva
+```
 
-go test ./...
+Releases are built with `PublishSingleFile` so the published binary is a single executable.
+
+#### Testing
+
+- Unit tests (if present):
+
+```bash
+cd src
+dotnet test -c Release
 ```
 
 - Integration testing typically requires:
   - A reachable LXC/Proxmox host with the expected templates.
-  - An `enva.yaml` describing your lab environment.
+  - An `enva.yaml` describing your environment (e.g. `enva init` then edit).
 
-#### Debian Packaging (Overview)
+#### Project layout
 
-- The `debian/` directory contains standard Debian packaging metadata:
-  - `control`, `changelog`, `rules`, `source/format`, etc.
-- A typical workflow (on a Debian/Ubuntu machine with build tools installed) might look like:
-
-```bash
-# From repository root
-# (commands may vary depending on your packaging setup)
-dpkg-buildpackage -us -uc
-```
-
-This produces `.deb` packages that can be installed with `dpkg -i` or `apt` as appropriate.
-
-#### Project Layout
-
-- **`src/`**: Go module root (code, `go.mod`, `go.sum`, `enva.yaml` example).
-- **`src/README.md`**: Additional project details specific to the Go implementation.
-- **`debian/`**: Packaging configuration.
+- **`src/`**: C# project root (`Enva.csproj`, `Program.cs`, `Libs/`, `Commands/`, `Actions/`, `Services/`, `Orchestration/`, `Verification/`, `CLI/`).
+- **`enva.yaml`**: Example configuration at repo root; embedded as resource for `enva init`.
 - **`docs/`**: This documentation set.
-
+- **`.github/workflows/`**: CI (test, tag, build, release, Homebrew formula update).
