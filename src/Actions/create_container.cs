@@ -145,6 +145,22 @@ public class CreateContainerAction : BaseAction, IAction
                 return false;
             }
 
+            // Wait for Proxmox config file to appear (cluster/CFS can delay visibility)
+            int configWaitMs = 500;
+            int configWaitMaxAttempts = 30;
+            for (int attempt = 0; attempt < configWaitMaxAttempts; attempt++)
+            {
+                (string configOut, int? configExit) = pctService.Config(containerIDInt);
+                if (configExit.HasValue && configExit.Value == 0)
+                    break;
+                if (attempt == configWaitMaxAttempts - 1)
+                {
+                    Logger.GetLogger("create_container").Printf("Config file for container {0} did not appear after {1} attempts: {2}", containerIDInt, configWaitMaxAttempts, configOut);
+                    return false;
+                }
+                Thread.Sleep(configWaitMs);
+            }
+
             Logger.GetLogger("create_container").Printf("Setting container features...");
             (output, exitCode) = pctService.SetFeatures(containerIDInt, shouldBeNested, true, true);
             if (exitCode.HasValue && exitCode.Value != 0)

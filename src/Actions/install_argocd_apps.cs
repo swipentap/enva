@@ -41,15 +41,29 @@ public class InstallArgoCDAppsAction : BaseAction, IAction
         var properties = Cfg.Kubernetes.GetActionProperties(actionName);
         
         // Get repo URL and path from properties
-        string repoUrl = properties != null && properties.TryGetValue("repo_url", out object? repoUrlObj) 
-            ? repoUrlObj?.ToString() ?? "" 
+        string repoUrl = properties != null && properties.TryGetValue("repo_url", out object? repoUrlObj)
+            ? repoUrlObj?.ToString() ?? ""
             : "";
+        if (string.IsNullOrEmpty(repoUrl) && properties != null && !properties.ContainsKey("repo_url"))
+        {
+            repoUrl = "https://github.com/swipentap/envaapps";
+        }
         string path = properties != null && properties.TryGetValue("path", out object? pathObj)
             ? pathObj?.ToString() ?? "applications"
             : "applications";
         string targetRevision = properties != null && properties.TryGetValue("target_revision", out object? revisionObj)
             ? revisionObj?.ToString() ?? "main"
             : "main";
+
+        // Derive overlay path from Domain when path is default (e.g. dev.net -> overlays/dev)
+        if (!string.IsNullOrEmpty(Cfg.Domain))
+        {
+            string[] domainParts = Cfg.Domain.Split('.');
+            if (domainParts.Length > 0 && !string.IsNullOrEmpty(domainParts[0]) && path == "applications")
+            {
+                path = "overlays/" + domainParts[0];
+            }
+        }
 
         if (string.IsNullOrEmpty(repoUrl))
         {
@@ -147,6 +161,16 @@ public class InstallArgoCDAppsAction : BaseAction, IAction
             }
 
             // Create root Application manifest
+            // Use Kustomize when path is an overlay (overlays/<env>); otherwise directory recurse for plain YAML (e.g. applications)
+            bool useKustomize = path.StartsWith("overlays/", StringComparison.OrdinalIgnoreCase);
+            string sourceBlock = useKustomize
+                ? $@"    path: {path}
+    kustomize: {{}}
+"
+                : $@"    path: {path}
+    directory:
+      recurse: true
+";
             logger.Printf("Creating root Application manifest...");
             string rootAppName = "root-apps";
             string rootAppYaml = $@"apiVersion: argoproj.io/v1alpha1
@@ -161,10 +185,7 @@ spec:
   source:
     repoURL: {repoUrl}
     targetRevision: {targetRevision}
-    path: {path}
-    directory:
-      recurse: true
-  destination:
+{sourceBlock}  destination:
     server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:

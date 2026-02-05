@@ -169,11 +169,12 @@ kubernetes:
   actions:
     - install metallb
     - update haproxy configuration
+    - install dnsdist
     - install argocd
     - create github runner secret
     - name: install argocd apps
       properties:
-        repo_url: "https://github.com/swipentap/prod"
+        repo_url: "https://github.com/swipentap/envaapps"
         path: "applications"
         target_revision: "main"
 

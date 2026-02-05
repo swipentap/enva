@@ -88,9 +88,6 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
         }
         
         logger.Printf("Using MetalLB IP pool ({0} to {1}) for Traefik LoadBalancer", ipPoolStart, ipPoolEnd);
-        
-        int sinsDnsTcpPort = 31759;  // Default fallback
-        int sinsDnsUdpPort = 31757;  // Default fallback
 
         // Get HTTP and HTTPS ports from haproxy container config
         int httpPort = 80;
@@ -124,13 +121,6 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
     mode tcp
     default_backend backend_ingress_https";
         frontends.Add(httpsFrontend);
-
-        // DNS TCP frontend - TCP mode forwarding to SiNS DNS
-        string dnsTcpFrontend = $@"frontend dns-tcp-in
-    bind *:53
-    mode tcp
-    default_backend backend_sins_dns_tcp";
-        frontends.Add(dnsTcpFrontend);
 
         // HTTP backend - load balance across MetalLB IP pool
         List<string> httpServerLines = new List<string>();
@@ -174,38 +164,6 @@ public class UpdateHaproxyConfigurationAction : BaseAction, IAction
     balance roundrobin
 {string.Join("\n", httpsServerLines)}";
         backends.Add(httpsBackend);
-
-        // DNS TCP backend - forward to SiNS DNS TCP NodePort (still use NodePort for DNS)
-        // Get k3s nodes for DNS backend
-        List<ContainerConfig> workerNodes = new List<ContainerConfig>();
-        foreach (var ct in Cfg.Containers)
-        {
-            if (ct.Name == "k3s-worker-1" || ct.Name == "k3s-worker-2" || ct.Name == "k3s-worker-3")
-            {
-                if (!string.IsNullOrEmpty(ct.IPAddress))
-                {
-                    workerNodes.Add(ct);
-                }
-            }
-        }
-        ContainerConfig? controlNode = Cfg.Containers.FirstOrDefault(ct => ct.Name == "k3s-control");
-        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
-        {
-            workerNodes.Add(controlNode);
-        }
-        
-        List<string> dnsTcpServerLines = new List<string>();
-        for (int i = 0; i < workerNodes.Count; i++)
-        {
-            var server = workerNodes[i];
-            string serverName = $"sins-dns-{i + 1}";
-            dnsTcpServerLines.Add($"    server {serverName} {server.IPAddress}:{sinsDnsTcpPort} check");
-        }
-        string dnsTcpBackend = $@"backend backend_sins_dns_tcp
-    mode tcp
-    balance roundrobin
-{string.Join("\n", dnsTcpServerLines)}";
-        backends.Add(dnsTcpBackend);
 
         string frontendsText = string.Join("\n\n", frontends);
         string backendsText = string.Join("\n\n", backends);
@@ -260,97 +218,7 @@ listen stats
             return false;
         }
 
-        // Setup UDP DNS forwarding using socat
-        logger.Printf("Setting up UDP DNS forwarding to SiNS...");
-        
-        // Ensure socat is installed
-        (string socatCheck, int? socatExitCode) = haproxySSHService.Execute("command -v socat", 30);
-        if (!socatExitCode.HasValue || socatExitCode.Value != 0)
-        {
-            logger.Printf("Installing socat...");
-            string installSocatCmd = "apt-get update && apt-get install -y socat";
-            (string installOutput, int? installExit) = haproxySSHService.Execute(installSocatCmd, 60, true); // sudo=true
-            if (installExit.HasValue && installExit.Value != 0)
-            {
-                logger.Printf("Failed to install socat: {0}", installOutput);
-                return false;
-            }
-        }
-        
-        // Get first k3s node IP for UDP forwarding target (use control node if available, otherwise first worker)
-        string? udpTargetIP = null;
-        if (controlNode != null && !string.IsNullOrEmpty(controlNode.IPAddress))
-        {
-            udpTargetIP = controlNode.IPAddress;
-        }
-        else if (workerNodes.Count > 0 && !string.IsNullOrEmpty(workerNodes[0].IPAddress))
-        {
-            udpTargetIP = workerNodes[0].IPAddress;
-        }
-
-        if (string.IsNullOrEmpty(udpTargetIP))
-        {
-            logger.Printf("Warning: No k3s node IP found for UDP DNS forwarding target");
-        }
-        else
-        {
-            // Disable systemd-resolved to free port 53
-            string disableResolvedCmd = "systemctl stop systemd-resolved 2>/dev/null; systemctl disable systemd-resolved 2>/dev/null; echo 'systemd-resolved disabled' || echo 'systemd-resolved not running'";
-            haproxySSHService.Execute(disableResolvedCmd, 30, true); // sudo=true
-
-            // Create systemd service for UDP DNS forwarding
-            string systemdServiceContent = $@"[Unit]
-Description=DNS UDP Forwarder to SiNS
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/socat UDP4-LISTEN:53,fork,reuseaddr UDP4:{udpTargetIP}:{sinsDnsUdpPort}
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-";
-
-            string writeServiceCmd = CLI.Files.NewFileOps().Write("/etc/systemd/system/dns-udp-forwarder.service", systemdServiceContent).ToCommand();
-            (string serviceWriteOutput, int? serviceWriteExit) = haproxySSHService.Execute(writeServiceCmd, 30, true); // sudo=true
-            if (serviceWriteExit.HasValue && serviceWriteExit.Value != 0)
-            {
-                logger.Printf("Failed to write DNS UDP forwarder service: {0}", serviceWriteOutput);
-                return false;
-            }
-
-            // Reload systemd and enable/start the service
-            string enableServiceCmd = "systemctl daemon-reload && systemctl enable dns-udp-forwarder.service && systemctl restart dns-udp-forwarder.service";
-            (string enableServiceOutput, int? enableServiceExit) = haproxySSHService.Execute(enableServiceCmd, 30, true); // sudo=true
-            if (enableServiceExit.HasValue && enableServiceExit.Value != 0)
-            {
-                logger.Printf("Failed to enable/start DNS UDP forwarder service: {0}", enableServiceOutput);
-                return false;
-            }
-
-            // Verify service is actually running
-            (string statusOutput, int? statusExit) = haproxySSHService.Execute("systemctl is-active dns-udp-forwarder.service", 10, true); // sudo=true
-            if (statusExit.HasValue && statusExit.Value != 0)
-            {
-                logger.Printf("DNS UDP forwarder service failed to start. Status: {0}", statusOutput);
-                return false;
-            }
-            if (!statusOutput.Trim().Equals("active", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.Printf("DNS UDP forwarder service is not active. Status: {0}", statusOutput);
-                return false;
-            }
-
-            // Ensure HAProxy has CAP_NET_BIND_SERVICE capability to bind to port 53
-            string setCapCmd = "setcap 'cap_net_bind_service=+ep' /usr/sbin/haproxy 2>/dev/null || echo 'capability already set or setcap not available'";
-            haproxySSHService.Execute(setCapCmd, 30, true); // sudo=true
-
-            logger.Printf("DNS UDP forwarder service configured and started (target: {0}:{1})", udpTargetIP, sinsDnsUdpPort);
-        }
-
-        logger.Printf("HAProxy configuration updated successfully with MetalLB IP pool ({0} to {1}) for Traefik LoadBalancer and SiNS DNS (TCP: {2})", ipPoolStart, ipPoolEnd, sinsDnsTcpPort);
+        logger.Printf("HAProxy configuration updated successfully with MetalLB IP pool ({0} to {1}) for Traefik LoadBalancer", ipPoolStart, ipPoolEnd);
         return true;
         }
         finally
