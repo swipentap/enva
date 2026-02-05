@@ -165,7 +165,7 @@ public class SSHService
                 byte[] stdoutBuffer = new byte[4096];
                 
                 // Stderr callback
-                AsyncCallback stderrCallback = null;
+                AsyncCallback? stderrCallback = null;
                 stderrCallback = (ar) =>
                 {
                     stderrReadCount++;
@@ -194,7 +194,7 @@ public class SSHService
                 };
                 
                 // Stdout callback
-                AsyncCallback stdoutCallback = null;
+                AsyncCallback? stdoutCallback = null;
                 stdoutCallback = (ar) =>
                 {
                     stdoutReadCount++;
@@ -231,7 +231,7 @@ public class SSHService
                     // Give callbacks a moment to start before EndExecute
                     Thread.Sleep(10);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     stderrReadComplete.Set();
                     stdoutReadComplete.Set();

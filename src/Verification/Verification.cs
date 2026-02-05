@@ -79,7 +79,7 @@ public static class Verification
             if (exitCode.HasValue && exitCode.Value == 0 && !string.IsNullOrEmpty(output))
             {
                 string[] lines = output.Trim().Split('\n');
-                int expectedNodes = 1 + (cfg.Kubernetes.Workers?.Count ?? 0);
+                int expectedNodes = 1 + (cfg?.Kubernetes?.Workers?.Count ?? 0);
                 int readyCount = 0;
                 var notReadyNodes = new System.Collections.Generic.List<string>();
 
@@ -153,7 +153,7 @@ public static class Verification
                     // Also fix /dev/kmsg on the node
                     int nodeID = 0;
                     // Try to match node name to container hostname or ID
-                    foreach (var container in cfg.Containers)
+                    foreach (var container in cfg?.Containers ?? new System.Collections.Generic.List<ContainerConfig>())
                     {
                         string containerHostname = container.Hostname;
                         string expectedWorkerName = $"k3s-worker-{container.ID}";
@@ -164,7 +164,7 @@ public static class Verification
                         }
                     }
                     // If not found, try to match by checking all workers
-                    if (nodeID == 0 && cfg.Kubernetes.Workers != null)
+                    if (nodeID == 0 && cfg?.Kubernetes?.Workers != null)
                     {
                         foreach (int workerID in cfg.Kubernetes.Workers)
                         {
@@ -193,7 +193,7 @@ public static class Verification
             logger.Printf("Removed unreachable taints and fixed nodes, waiting 15 seconds for nodes to stabilize...");
             Thread.Sleep(15000);
             // Re-verify nodes are Ready after removing taints
-            return VerifyNodesReady(cfg, pctService, controlID);
+            return VerifyNodesReady(cfg!, pctService, controlID);
         }
 
         logger.Printf("✓ No unreachable taints found on worker nodes");
@@ -206,11 +206,11 @@ public static class Verification
         logger.Printf("Verifying /dev/kmsg exists on all k3s nodes...");
 
         var allNodeIDs = new System.Collections.Generic.List<int>();
-        if (cfg.Kubernetes.Control != null)
+        if (cfg?.Kubernetes?.Control != null)
         {
             allNodeIDs.AddRange(cfg.Kubernetes.Control);
         }
-        if (cfg.Kubernetes.Workers != null)
+        if (cfg?.Kubernetes?.Workers != null)
         {
             allNodeIDs.AddRange(cfg.Kubernetes.Workers);
         }
@@ -232,7 +232,7 @@ public static class Verification
                 logger.Printf("✓ Created /dev/kmsg on node {0}", nodeID);
 
                 // Restart k3s service if it's a control node, or k3s-agent if it's a worker
-                bool isControl = cfg.Kubernetes.Control != null && cfg.Kubernetes.Control.Contains(nodeID);
+                bool isControl = cfg?.Kubernetes?.Control != null && cfg.Kubernetes.Control.Contains(nodeID);
                 string serviceName = isControl ? "k3s" : "k3s-agent";
 
                 logger.Printf("Restarting {0} service on node {1}...", serviceName, nodeID);

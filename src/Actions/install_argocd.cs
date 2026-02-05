@@ -319,7 +319,7 @@ public class InstallArgoCDAction : BaseAction, IAction
                     }
                     else
                     {
-                        Logger.GetLogger("install_argocd").Printf("Failed to change password via CLI (exit code: {0}): {1}", changePasswordExit, changePasswordOutput);
+                        Logger.GetLogger("install_argocd").Printf("Failed to change password via CLI (exit code: {0}): {1}", changePasswordExit?.ToString() ?? "?", changePasswordOutput ?? "");
                     }
                 }
                 else
@@ -329,7 +329,7 @@ public class InstallArgoCDAction : BaseAction, IAction
             }
             else
             {
-                Logger.GetLogger("install_argocd").Printf("Could not retrieve initial password (exit code: {0}), skipping password change", getPasswordExit);
+                Logger.GetLogger("install_argocd").Printf("Could not retrieve initial password (exit code: {0}), skipping password change", getPasswordExit?.ToString() ?? "?");
             }
 
             Logger.GetLogger("install_argocd").Printf("ArgoCD installed successfully on NodePort {0}", nodePort);

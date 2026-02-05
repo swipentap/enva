@@ -209,71 +209,6 @@ class Program
             }, statusEnvironmentArgument, verboseOption, configOption);
             rootCommand.AddCommand(statusCommand);
 
-            // Backup command
-            var backupCommand = new Command("backup", "Backup cluster according to enva.yaml configuration");
-            var backupEnvironmentArgument = new Argument<string>("environment", "Environment name");
-            backupCommand.AddArgument(backupEnvironmentArgument);
-            var backupTimeoutOption = new Option<int>(
-                "--timeout",
-                () => 0,
-                "Timeout in seconds for backup operations (0 = use defaults, applies to final tarball and archive operations)");
-            backupCommand.AddOption(backupTimeoutOption);
-            var backupExcludeOption = new Option<string[]>(
-                "--exclude",
-                () => Array.Empty<string>(),
-                "Paths to exclude from backup (relative to archive base, can be specified multiple times)");
-            backupCommand.AddOption(backupExcludeOption);
-            var backupShowSizesOption = new Option<bool>(
-                "--show-sizes",
-                "Show directory/file sizes before backing up");
-            backupCommand.AddOption(backupShowSizesOption);
-            var backupCheckSpaceOption = new Option<bool>(
-                "--check-space",
-                "Show what's taking up space in directories before backing up");
-            backupCommand.AddOption(backupCheckSpaceOption);
-            backupCommand.SetHandler((string environment, bool verboseOpt, string configOpt, int timeout, string[] exclude, bool showSizes, bool checkSpace) =>
-            {
-                verbose = verboseOpt;
-                configFile = configOpt;
-                try
-                {
-                    RunBackup(environment, timeout, exclude.ToList(), showSizes, checkSpace);
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    Environment.Exit(1);
-                }
-            }, backupEnvironmentArgument, verboseOption, configOption, backupTimeoutOption, backupExcludeOption, backupShowSizesOption, backupCheckSpaceOption);
-            rootCommand.AddCommand(backupCommand);
-
-            // Restore command
-            var restoreCommand = new Command("restore", "Restore cluster from backup");
-            var restoreEnvironmentArgument = new Argument<string>("environment", "Environment name");
-            restoreCommand.AddArgument(restoreEnvironmentArgument);
-            var restoreBackupNameOption = new Option<string>(
-                "--backup-name",
-                "Name of the backup to restore (e.g., backup-20251130_120000)")
-            {
-                IsRequired = true
-            };
-            restoreCommand.AddOption(restoreBackupNameOption);
-            restoreCommand.SetHandler((string environment, bool verboseOpt, string configOpt, string backupName) =>
-            {
-                verbose = verboseOpt;
-                configFile = configOpt;
-                try
-                {
-                    RunRestore(environment, backupName);
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Error: {ex.Message}");
-                    Environment.Exit(1);
-                }
-            }, restoreEnvironmentArgument, verboseOption, configOption, restoreBackupNameOption);
-            rootCommand.AddCommand(restoreCommand);
-
             // Init command
             var initCommand = new Command("init", "Create enva config from example (enva.yaml)");
             var initOutputOption = new Option<string>(
@@ -315,11 +250,10 @@ class Program
             // For C#, use executable directory or current directory
             try
             {
-                string? exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                if (!string.IsNullOrEmpty(exePath))
+                string? baseDir = AppContext.BaseDirectory;
+                if (!string.IsNullOrEmpty(baseDir))
                 {
-                    string exeDir = Path.GetDirectoryName(exePath) ?? "";
-                    string defaultPath = Path.Combine(exeDir, "enva.yaml");
+                    string defaultPath = Path.Combine(baseDir, "enva.yaml");
                     if (File.Exists(defaultPath))
                     {
                         cfgPath = defaultPath;
@@ -480,37 +414,6 @@ class Program
         var pctService = new PCTService(lxcService);
         var statusCmd = new StatusCommand(cfg, lxcService, pctService);
         statusCmd.Run();
-    }
-
-    private static void RunBackup(string environment, int timeout, System.Collections.Generic.List<string> excludePaths, bool showSizes, bool checkSpace)
-    {
-        var cfg = GetConfig(environment);
-
-        int? timeoutPtr = null;
-        if (timeout > 0)
-        {
-            timeoutPtr = timeout;
-        }
-
-        var lxcService = new LXCService(cfg.LXCHost(), cfg.SSH);
-        var pctService = new PCTService(lxcService);
-        var backupCmd = new BackupCommand(cfg, lxcService, pctService);
-        backupCmd.Run(timeoutPtr, excludePaths, showSizes, checkSpace);
-    }
-
-    private static void RunRestore(string environment, string backupName)
-    {
-        var cfg = GetConfig(environment);
-
-        if (string.IsNullOrEmpty(backupName))
-        {
-            throw new Exception("--backup-name is required");
-        }
-
-        var lxcService = new LXCService(cfg.LXCHost(), cfg.SSH);
-        var pctService = new PCTService(lxcService);
-        var restoreCmd = new RestoreCommand(cfg, lxcService, pctService);
-        restoreCmd.Run(backupName);
     }
 
     private static int RunUpdateControlNodeSshKey(string environment)

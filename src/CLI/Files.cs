@@ -14,7 +14,6 @@ public class FileOps
 {
     private string? path;
     private string? content;
-    private string? mode;
     private bool parents;
     private bool append;
     private string operation = "";

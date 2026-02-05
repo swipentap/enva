@@ -77,6 +77,8 @@ public class DeployCommand
 
     private void RunDeploy(DeployPlan plan)
     {
+        if (cfg == null)
+            throw new DeployError("Config not loaded");
         var logger = Logger.GetLogger("deploy");
         plan = BuildPlan(plan.StartStep, plan.EndStep);
         LogDeployPlan(plan);
@@ -294,7 +296,7 @@ public class DeployCommand
                 {
                     pctService = new PCTService(lxcService);
                 }
-                if (!Kubernetes.DeployKubernetes(cfg))
+                if (!Kubernetes.DeployKubernetes(cfg!))
                 {
                         stepTiming.EndTime = DateTime.Now;
                     throw new DeployError("Failed to execute setup kubernetes action");
@@ -567,7 +569,12 @@ public class DeployCommand
                 stepTimings.Add(stepTiming);
                 try
                 {
-                    var action = ActionRegistry.GetAction(actionName, sshService, aptService, pctService, containerIDStr, cfg, containerCfg);
+                    var action = ActionRegistry.GetAction(actionName, sshService, aptService, pctService, containerIDStr, cfg!, containerCfg);
+                    if (action == null)
+                    {
+                        stepTiming.EndTime = DateTime.Now;
+                        throw new DeployError($"Unknown action: {actionName}");
+                    }
                     if (!action.Execute())
                     {
                         stepTiming.EndTime = DateTime.Now;

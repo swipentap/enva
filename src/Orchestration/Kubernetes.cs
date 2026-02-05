@@ -507,7 +507,6 @@ public static class Kubernetes
             logger.Printf("Verifying Kubernetes API is reachable...");
             string verifyAPICmd = "kubectl cluster-info";
             int maxVerifyAttempts = 20;
-            bool apiReachable = false;
             for (int attempt = 0; attempt < maxVerifyAttempts; attempt++)
             {
                 int? apiTimeout = 30;
@@ -515,7 +514,6 @@ public static class Kubernetes
                 if (verifyExit.HasValue && verifyExit.Value == 0 && !string.IsNullOrEmpty(verifyOutput) && verifyOutput.Contains("is running at"))
                 {
                     logger.Printf("Kubernetes API is reachable");
-                    apiReachable = true;
                     break;
                 }
                 if (attempt < maxVerifyAttempts - 1)
@@ -603,7 +601,6 @@ public static class Kubernetes
             logger.Printf("Installing cert-manager...");
             string certManagerCmd = "kubectl apply --validate=false --server-side --force-conflicts -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml";
             int maxRetries = 3;
-            bool certManagerInstalled = false;
             for (int retry = 0; retry < maxRetries; retry++)
             {
                 int? certManagerTimeout = 300;
@@ -617,13 +614,11 @@ public static class Kubernetes
                     if (verifyExit.HasValue && verifyExit.Value == 0 && !string.IsNullOrEmpty(verifyOutput) && verifyOutput.Contains("cert-manager"))
                     {
                         logger.Printf("cert-manager installed and verified successfully");
-                        certManagerInstalled = true;
                         break;
                     }
                     else if (CountOccurrences(certManagerOutput, "serverside-applied") >= 10)
                     {
                         logger.Printf("cert-manager resources applied successfully (verification skipped due to API unavailability)");
-                        certManagerInstalled = true;
                         break;
                     }
                 }
@@ -691,7 +686,6 @@ public static class Kubernetes
             logger.Printf("Verifying Kubernetes API is reachable...");
             string verifyAPICmd2 = "kubectl cluster-info";
             int maxVerifyAttempts2 = 10;
-            bool apiReachable2 = false;
             for (int attempt = 0; attempt < maxVerifyAttempts2; attempt++)
             {
                 int? apiTimeout2 = 30;
@@ -699,7 +693,6 @@ public static class Kubernetes
                 if (verifyExit2.HasValue && verifyExit2.Value == 0 && !string.IsNullOrEmpty(verifyOutput2) && verifyOutput2.Contains("is running at"))
                 {
                     logger.Printf("Kubernetes API is reachable");
-                    apiReachable2 = true;
                     break;
                 }
                 if (attempt < maxVerifyAttempts2 - 1)
@@ -757,14 +750,12 @@ public static class Kubernetes
             // Add Helm repo
             string repoAddCmd = "export PATH=/usr/local/bin:$PATH && helm repo add rancher-stable https://releases.rancher.com/server-charts/stable && helm repo update";
             int maxRepoRetries = 3;
-            bool repoAdded = false;
             for (int repoRetry = 0; repoRetry < maxRepoRetries; repoRetry++)
             {
                 int? repoTimeout = 120;
                 (string repoOutput, int? repoExit) = pctService.Execute(controlID, repoAddCmd, repoTimeout);
                 if (repoExit.HasValue && repoExit.Value == 0)
                 {
-                    repoAdded = true;
                     break;
                 }
                 if (repoRetry < maxRepoRetries - 1)
@@ -903,7 +894,7 @@ public static class Kubernetes
                 }
 
                 // Create Ingress for Rancher
-                if (rancherReady && !string.IsNullOrEmpty(context.Cfg.Domain))
+                if (rancherReady && !string.IsNullOrEmpty(context.Cfg?.Domain))
                 {
                     logger.Printf("Creating Ingress for Rancher...");
                     string rancherHost = $"rancher.{context.Cfg.Domain}";

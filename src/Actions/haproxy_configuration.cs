@@ -324,7 +324,7 @@ listen stats
         }
 
         // Verify HAProxy backends after configuration
-        if (PCTService != null)
+        if (PCTService != null && Cfg != null)
         {
             Thread.Sleep(2000);
             Verification.Verification.VerifyHAProxyBackends(Cfg, PCTService);
