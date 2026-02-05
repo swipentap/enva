@@ -14,14 +14,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
       - name: Build enva
-        working-directory: src
-        run: go build -o enva main.go
+        run: |
+          dotnet publish src/Enva.csproj -c Release -r linux-x64 --self-contained true -o publish
 
       - name: Install enva to system
         run: |
-          cp src/enva /usr/local/bin/enva
-          chmod +x /usr/local/bin/enva
+          sudo mkdir -p /usr/local/lib/enva
+          sudo cp -r publish/* /usr/local/lib/enva/
+          sudo ln -sf /usr/local/lib/enva/Enva /usr/local/bin/enva
+          sudo chmod +x /usr/local/bin/enva
 
       - name: Verify installation
         run: which enva && enva --help
