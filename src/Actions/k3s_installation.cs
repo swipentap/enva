@@ -187,7 +187,7 @@ disable:
             Logger.GetLogger("install_k3s").Printf("k3s config file created successfully");
 
             string installCmd = "curl -sfL https://get.k3s.io | sh -";
-            int timeout = 300;
+            int timeout = 600;
             (string installOutput, int? installExit) = SSHService.Execute(installCmd, timeout);
             if (installExit.HasValue && installExit.Value != 0)
             {

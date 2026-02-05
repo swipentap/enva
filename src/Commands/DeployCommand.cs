@@ -586,7 +586,7 @@ public class DeployCommand
                 catch (Exception ex)
                 {
                     stepTiming.EndTime = DateTime.Now;
-                    throw new DeployError($"Action '{actionName}' not found for container '{containerName}': {ex.Message}");
+                    throw new DeployError($"Action '{actionName}' failed for container '{containerName}': {ex.Message}");
                 }
             }
         }
