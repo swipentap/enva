@@ -274,6 +274,30 @@ class Program
             }, restoreEnvironmentArgument, verboseOption, configOption, restoreBackupNameOption);
             rootCommand.AddCommand(restoreCommand);
 
+            // Init command
+            var initCommand = new Command("init", "Create enva config from example (enva.yaml)");
+            var initOutputOption = new Option<string>(
+                new[] { "--output", "-o" },
+                () => "",
+                "Output path for config file (default: ./enva.yaml)");
+            var initForceOption = new Option<bool>(
+                "--force",
+                "Overwrite existing file");
+            initCommand.AddOption(initOutputOption);
+            initCommand.AddOption(initForceOption);
+            initCommand.SetHandler((InvocationContext context) =>
+            {
+                var pr = context.ParseResult;
+                string output = pr.GetValueForOption(initOutputOption) ?? "";
+                bool force = pr.GetValueForOption(initForceOption);
+                int exitCode = InitCommand.Run(output, force);
+                if (exitCode != 0)
+                {
+                    Environment.Exit(exitCode);
+                }
+            });
+            rootCommand.AddCommand(initCommand);
+
             return rootCommand.Invoke(args);
         }
         finally
