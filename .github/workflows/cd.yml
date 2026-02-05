@@ -25,10 +25,10 @@ jobs:
 
       - name: Install enva to system
         run: |
-          sudo mkdir -p /usr/local/lib/enva
-          sudo cp -r publish/* /usr/local/lib/enva/
-          sudo ln -sf /usr/local/lib/enva/Enva /usr/local/bin/enva
-          sudo chmod +x /usr/local/bin/enva
+          mkdir -p /usr/local/lib/enva
+          cp -r publish/* /usr/local/lib/enva/
+          ln -sf /usr/local/lib/enva/Enva /usr/local/bin/enva
+          chmod +x /usr/local/bin/enva
 
       - name: Verify installation
         run: which enva && enva --help
