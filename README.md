@@ -7,7 +7,7 @@ CLI for deploying and managing Kubernetes (k3s) clusters with supporting service
 **Homebrew (macOS):**
 
 ```bash
-brew tap swipentap/enva
+brew tap swipentap/tools
 brew install enva
 ```
 
