@@ -1,17 +1,21 @@
-name: CD
+name: Build and Release
 
 on:
   push:
-    branches:
-      - main
-      - master
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: false
+        default: '0.0.1'
 
 permissions:
   contents: write
 
 jobs:
-  build-test-release:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +40,12 @@ jobs:
       - name: Create tarballs and compute sha256
         id: tarballs
         run: |
-          VERSION="0.0.1-main.${{ github.run_number }}"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version || '0.0.1' }}"
+            VERSION=${VERSION#v}
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           mkdir -p dist
           cp publish/osx-arm64/Enva publish/osx-arm64/enva
