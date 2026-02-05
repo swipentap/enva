@@ -57,7 +57,19 @@ jobs:
       - name: Publish osx-x64
         run: dotnet publish src/Enva.csproj -c Release -r osx-x64 --self-contained true -o publish/osx-x64
 
-      - name: Create tarballs and compute sha256
+      - name: Publish linux-x64
+        run: dotnet publish src/Enva.csproj -c Release -r linux-x64 --self-contained true -o publish/linux-x64
+
+      - name: Publish linux-arm64
+        run: dotnet publish src/Enva.csproj -c Release -r linux-arm64 --self-contained true -o publish/linux-arm64
+
+      - name: Publish win-x64
+        run: dotnet publish src/Enva.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+      - name: Publish win-arm64
+        run: dotnet publish src/Enva.csproj -c Release -r win-arm64 --self-contained true -o publish/win-arm64
+
+      - name: Create tarballs and zips, compute sha256
         id: tarballs
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
@@ -68,14 +80,34 @@ jobs:
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           mkdir -p dist
+          # macOS
           cp publish/osx-arm64/Enva publish/osx-arm64/enva
           tar -czvf dist/enva-${VERSION}-darwin-arm64.tar.gz -C publish/osx-arm64 enva
           cp publish/osx-x64/Enva publish/osx-x64/enva
           tar -czvf dist/enva-${VERSION}-darwin-amd64.tar.gz -C publish/osx-x64 enva
-          SHA_ARM=$(shasum -a 256 dist/enva-${VERSION}-darwin-arm64.tar.gz | awk '{print $1}')
-          SHA_AMD=$(shasum -a 256 dist/enva-${VERSION}-darwin-amd64.tar.gz | awk '{print $1}')
-          echo "SHA_ARM=$SHA_ARM" >> $GITHUB_OUTPUT
-          echo "SHA_AMD=$SHA_AMD" >> $GITHUB_OUTPUT
+          # Linux
+          cp publish/linux-x64/Enva publish/linux-x64/enva
+          tar -czvf dist/enva-${VERSION}-linux-amd64.tar.gz -C publish/linux-x64 enva
+          cp publish/linux-arm64/Enva publish/linux-arm64/enva
+          tar -czvf dist/enva-${VERSION}-linux-arm64.tar.gz -C publish/linux-arm64 enva
+          # Windows (zip with enva.exe)
+          cp publish/win-x64/Enva.exe publish/win-x64/enva.exe
+          (cd publish/win-x64 && zip -r ../../dist/enva-${VERSION}-windows-amd64.zip enva.exe)
+          cp publish/win-arm64/Enva.exe publish/win-arm64/enva.exe
+          (cd publish/win-arm64 && zip -r ../../dist/enva-${VERSION}-windows-arm64.zip enva.exe)
+          # SHA256 for all
+          SHA_OSX_ARM=$(shasum -a 256 dist/enva-${VERSION}-darwin-arm64.tar.gz | awk '{print $1}')
+          SHA_OSX_AMD=$(shasum -a 256 dist/enva-${VERSION}-darwin-amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD=$(shasum -a 256 dist/enva-${VERSION}-linux-amd64.tar.gz | awk '{print $1}')
+          SHA_LINUX_ARM=$(shasum -a 256 dist/enva-${VERSION}-linux-arm64.tar.gz | awk '{print $1}')
+          SHA_WIN_AMD=$(shasum -a 256 dist/enva-${VERSION}-windows-amd64.zip | awk '{print $1}')
+          SHA_WIN_ARM=$(shasum -a 256 dist/enva-${VERSION}-windows-arm64.zip | awk '{print $1}')
+          echo "SHA_ARM=$SHA_OSX_ARM" >> $GITHUB_OUTPUT
+          echo "SHA_AMD=$SHA_OSX_AMD" >> $GITHUB_OUTPUT
+          echo "SHA_LINUX_AMD=$SHA_LINUX_AMD" >> $GITHUB_OUTPUT
+          echo "SHA_LINUX_ARM=$SHA_LINUX_ARM" >> $GITHUB_OUTPUT
+          echo "SHA_WIN_AMD=$SHA_WIN_AMD" >> $GITHUB_OUTPUT
+          echo "SHA_WIN_ARM=$SHA_WIN_ARM" >> $GITHUB_OUTPUT
 
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2
@@ -85,11 +117,15 @@ jobs:
           files: |
             dist/enva-*-darwin-arm64.tar.gz
             dist/enva-*-darwin-amd64.tar.gz
+            dist/enva-*-linux-amd64.tar.gz
+            dist/enva-*-linux-arm64.tar.gz
+            dist/enva-*-windows-amd64.zip
+            dist/enva-*-windows-arm64.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update homebrew-enva formula (binary)
+      - name: Update homebrew-tools formula (binary)
         env:
           ACTIONS_GITHUB_TOKEN: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
         run: |
@@ -97,9 +133,11 @@ jobs:
           VERSION="${{ steps.tarballs.outputs.VERSION }}"
           SHA_ARM="${{ steps.tarballs.outputs.SHA_ARM }}"
           SHA_AMD="${{ steps.tarballs.outputs.SHA_AMD }}"
+          SHA_LINUX_AMD="${{ steps.tarballs.outputs.SHA_LINUX_AMD }}"
+          SHA_LINUX_ARM="${{ steps.tarballs.outputs.SHA_LINUX_ARM }}"
           HASH='#'
-          git clone "https://${ACTIONS_GITHUB_TOKEN}@github.com/swipentap/homebrew-enva.git" homebrew-enva
-          cd homebrew-enva
+          git clone "https://${ACTIONS_GITHUB_TOKEN}@github.com/swipentap/homebrew-tools.git" homebrew-tools
+          cd homebrew-tools
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           cat > Formula/enva.rb << FORMULA
@@ -111,13 +149,25 @@ jobs:
             homepage "https://github.com/swipentap/enva"
             version "${VERSION}"
 
-            on_arm do
-              url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-arm64.tar.gz"
-              sha256 "${SHA_ARM}"
+            on_macos do
+              on_arm do
+                url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-arm64.tar.gz"
+                sha256 "${SHA_ARM}"
+              end
+              on_intel do
+                url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-amd64.tar.gz"
+                sha256 "${SHA_AMD}"
+              end
             end
-            on_intel do
-              url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-darwin-amd64.tar.gz"
-              sha256 "${SHA_AMD}"
+            on_linux do
+              on_arm do
+                url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-linux-arm64.tar.gz"
+                sha256 "${SHA_LINUX_ARM}"
+              end
+              on_intel do
+                url "https://github.com/swipentap/enva/releases/download/v${HASH}{version}/enva-${HASH}{version}-linux-amd64.tar.gz"
+                sha256 "${SHA_LINUX_AMD}"
+              end
             end
 
             head "https://github.com/swipentap/enva.git", branch: "main"
@@ -126,7 +176,11 @@ jobs:
 
             def install
               if build.head?
-                rid = Hardware::CPU.arm? ? "osx-arm64" : "osx-x64"
+                rid = if OS.mac?
+                  Hardware::CPU.arm? ? "osx-arm64" : "osx-x64"
+                else
+                  Hardware::CPU.arm? ? "linux-arm64" : "linux-x64"
+                end
                 system "dotnet", "publish", "src/Enva.csproj",
                        "-c", "Release", "-r", rid, "--self-contained", "true", "-o", "publish"
                 libexec.install Dir["publish/*"]
