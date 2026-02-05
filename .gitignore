@@ -8,3 +8,6 @@ src/enva
 **/obj/
 **/Debug/
 **/Release/
+
+# Cursor IDE
+.cursor/
