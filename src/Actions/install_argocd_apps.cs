@@ -51,9 +51,11 @@ public class InstallArgoCDAppsAction : BaseAction, IAction
         string path = properties != null && properties.TryGetValue("path", out object? pathObj)
             ? pathObj?.ToString() ?? "applications"
             : "applications";
-        string targetRevision = properties != null && properties.TryGetValue("target_revision", out object? revisionObj)
-            ? revisionObj?.ToString() ?? "main"
-            : "main";
+        string targetRevision = !string.IsNullOrEmpty(Cfg.ArgoAppsBranch)
+            ? Cfg.ArgoAppsBranch
+            : (properties != null && properties.TryGetValue("target_revision", out object? revisionObj)
+                ? revisionObj?.ToString() ?? "main"
+                : "main");
 
         // Derive overlay path from Domain when path is default (e.g. dev.net -> overlays/dev)
         if (!string.IsNullOrEmpty(Cfg.Domain))

@@ -71,6 +71,10 @@ public class EnvironmentConfig
     [YamlMember(Alias = "domain")]
     public string? Domain { get; set; }
 
+    /// <summary>Git branch of the Argo app-of-apps repo (envaapps) to use when deploying this environment.</summary>
+    [YamlMember(Alias = "branch")]
+    public string? Branch { get; set; }
+
     [YamlMember(Alias = "certificate_path")]
     public string? CertificatePath { get; set; }
 

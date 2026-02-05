@@ -25,6 +25,40 @@ public class CleanupCommand
         this.pctService = pctService;
     }
 
+    /// <summary>List containers and templates that would be destroyed, without destroying anything.</summary>
+    public void RunPlanOnly()
+    {
+        var logger = Logger.GetLogger("cleanup");
+        if (lxcService == null || cfg == null)
+        {
+            logger.Printf("Cleanup plan: config or LXC service not initialized");
+            return;
+        }
+        if (!lxcService.Connect())
+        {
+            logger.Printf("Cleanup plan: failed to connect to LXC host {0}", cfg.LXCHost());
+            return;
+        }
+        try
+        {
+            logger.Printf("=== Cleanup (plan only): containers that would be destroyed ===");
+            List<string> containerIDs = ListContainerIDs();
+            if (containerIDs.Count == 0)
+            {
+                logger.Printf("  No containers found");
+            }
+            else
+            {
+                logger.Printf("  {0} container(s): {1}", containerIDs.Count, string.Join(", ", containerIDs));
+            }
+            logger.Printf("  Templates: all *.tar.zst in {0} would be removed", cfg.LXCTemplateDir());
+        }
+        finally
+        {
+            lxcService.Disconnect();
+        }
+    }
+
     public void Run()
     {
         var logger = Logger.GetLogger("cleanup");

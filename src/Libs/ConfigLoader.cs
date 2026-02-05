@@ -380,6 +380,7 @@ public static class ConfigLoader
             Backup = backup,
             APTCacheCT = config.APTCacheCT ?? "apt-cache",
             Domain = envConfig?.Domain,
+            ArgoAppsBranch = envConfig?.Branch,
             CertificatePath = envConfig?.CertificatePath,
             CertificateSourcePath = envConfig?.CertificateSourcePath
         };

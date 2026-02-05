@@ -1,5 +1,6 @@
 using System;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using Enva.Actions;
@@ -86,21 +87,36 @@ class Program
                 "--planonly",
                 "Show deployment plan and exit without executing");
             deployCommand.AddOption(deployPlanOnlyOption);
-            deployCommand.SetHandler((string environment, bool verboseOpt, string configOpt, string githubTokenOpt, int startStep, int endStep, bool planOnly) =>
+            var deployUpdateSshKeyOption = new Option<bool>(
+                "--update-control-node-ssh-key",
+                "After deploy, update ~/.ssh/known_hosts for the K3s control node");
+            deployCommand.AddOption(deployUpdateSshKeyOption);
+            var deployGetReadyKubectlOption = new Option<bool>(
+                "--get-ready-kubectl",
+                "After deploy, configure kubectl context for this environment");
+            deployCommand.AddOption(deployGetReadyKubectlOption);
+            deployCommand.SetHandler((InvocationContext context) =>
             {
-                verbose = verboseOpt;
-                configFile = configOpt;
-                githubToken = githubTokenOpt;
+                var pr = context.ParseResult;
+                verbose = pr.GetValueForOption(verboseOption);
+                configFile = pr.GetValueForOption(configOption) ?? "";
+                githubToken = pr.GetValueForOption(githubTokenOption) ?? "";
+                string environment = pr.GetValueForArgument(deployEnvironmentArgument) ?? "";
+                int startStep = pr.GetValueForOption(deployStartStepOption);
+                int endStep = pr.GetValueForOption(deployEndStepOption);
+                bool planOnly = pr.GetValueForOption(deployPlanOnlyOption);
+                bool updateSshKey = pr.GetValueForOption(deployUpdateSshKeyOption);
+                bool getReadyKubectl = pr.GetValueForOption(deployGetReadyKubectlOption);
                 try
                 {
-                    RunDeploy(environment, startStep, endStep, planOnly);
+                    RunDeploy(environment, startStep, endStep, planOnly, updateSshKey, getReadyKubectl);
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"Error: {ex.Message}");
                     Environment.Exit(1);
                 }
-            }, deployEnvironmentArgument, verboseOption, configOption, githubTokenOption, deployStartStepOption, deployEndStepOption, deployPlanOnlyOption);
+            });
             rootCommand.AddCommand(deployCommand);
 
             // Cleanup command
@@ -137,21 +153,40 @@ class Program
                 () => 0,
                 "End at this step (default: last step, 0 means last)");
             redeployCommand.AddOption(redeployEndStepOption);
-            redeployCommand.SetHandler((string environment, bool verboseOpt, string configOpt, string githubTokenOpt, int startStep, int endStep) =>
+            var redeployUpdateSshKeyOption = new Option<bool>(
+                "--update-control-node-ssh-key",
+                "After redeploy, update ~/.ssh/known_hosts for the K3s control node");
+            redeployCommand.AddOption(redeployUpdateSshKeyOption);
+            var redeployGetReadyKubectlOption = new Option<bool>(
+                "--get-ready-kubectl",
+                "After redeploy, configure kubectl context for this environment");
+            redeployCommand.AddOption(redeployGetReadyKubectlOption);
+            var redeployPlanOnlyOption = new Option<bool>(
+                "--planonly",
+                "Show deployment plan and exit without executing");
+            redeployCommand.AddOption(redeployPlanOnlyOption);
+            redeployCommand.SetHandler((InvocationContext context) =>
             {
-                verbose = verboseOpt;
-                configFile = configOpt;
-                githubToken = githubTokenOpt;
+                var pr = context.ParseResult;
+                verbose = pr.GetValueForOption(verboseOption);
+                configFile = pr.GetValueForOption(configOption) ?? "";
+                githubToken = pr.GetValueForOption(githubTokenOption) ?? "";
+                string environment = pr.GetValueForArgument(redeployEnvironmentArgument) ?? "";
+                int startStep = pr.GetValueForOption(redeployStartStepOption);
+                int endStep = pr.GetValueForOption(redeployEndStepOption);
+                bool updateSshKey = pr.GetValueForOption(redeployUpdateSshKeyOption);
+                bool getReadyKubectl = pr.GetValueForOption(redeployGetReadyKubectlOption);
+                bool planOnly = pr.GetValueForOption(redeployPlanOnlyOption);
                 try
                 {
-                    RunRedeploy(environment, startStep, endStep);
+                    RunRedeploy(environment, startStep, endStep, updateSshKey, getReadyKubectl, planOnly);
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"Error: {ex.Message}");
                     Environment.Exit(1);
                 }
-            }, redeployEnvironmentArgument, verboseOption, configOption, githubTokenOption, redeployStartStepOption, redeployEndStepOption);
+            });
             rootCommand.AddCommand(redeployCommand);
 
             // Status command
@@ -291,7 +326,7 @@ class Program
         return cfg;
     }
 
-    private static void RunDeploy(string environment, int startStep, int endStep, bool planOnly)
+    private static void RunDeploy(string environment, int startStep, int endStep, bool planOnly, bool updateSshKey, bool getReadyKubectl)
     {
         // Set GitHub token as environment variable if provided via CLI
         if (!string.IsNullOrEmpty(githubToken))
@@ -311,6 +346,23 @@ class Program
         var pctService = new PCTService(lxcService);
         var deployCmd = new DeployCommand(cfg, lxcService, pctService);
         deployCmd.Run(startStep, endStepPtr, planOnly);
+
+        if (!planOnly)
+        {
+            // Order matters: update SSH key first so get-ready-kubectl can SSH to control node without host key errors
+            if (updateSshKey)
+            {
+                int rc = RunUpdateControlNodeSshKey(environment);
+                if (rc != 0)
+                    throw new Exception($"update-control-node-ssh-key failed with exit code {rc}");
+            }
+            if (getReadyKubectl)
+            {
+                int rc = RunGetReadyKubectl(environment);
+                if (rc != 0)
+                    throw new Exception($"get-ready-kubectl failed with exit code {rc}");
+            }
+        }
     }
 
     private static void RunCleanup(string environment)
@@ -323,7 +375,7 @@ class Program
         cleanupCmd.Run();
     }
 
-    private static void RunRedeploy(string environment, int startStep, int endStep)
+    private static void RunRedeploy(string environment, int startStep, int endStep, bool updateSshKey, bool getReadyKubectl, bool planOnly)
     {
         // Set GitHub token as environment variable if provided via CLI
         if (!string.IsNullOrEmpty(githubToken))
@@ -341,28 +393,54 @@ class Program
 
         var logger = Logger.GetLogger("main");
         logger.Printf("=== Redeploy: Cleanup and Deploy ===");
-        logger.Printf("\n[1/2] Running cleanup...");
 
         var lxcService = new LXCService(cfg.LXCHost(), cfg.SSH);
         try
         {
             var pctService = new PCTService(lxcService);
-            var cleanupCmd = new CleanupCommand(cfg, lxcService, pctService);
-            // Python doesn't catch errors between cleanup and deploy - if cleanup fails, deploy still runs
-            try
+            if (planOnly)
             {
-                cleanupCmd.Run(); // Ignore error to match Python behavior
+                logger.Printf("\n[1/2] Cleanup (plan only) — containers that would be destroyed:");
+                var cleanupCmdPlan = new CleanupCommand(cfg, lxcService, pctService);
+                cleanupCmdPlan.RunPlanOnly();
             }
-            catch
+            else
             {
-                // Ignore cleanup errors
+                logger.Printf("\n[1/2] Running cleanup...");
+                var cleanupCmd = new CleanupCommand(cfg, lxcService, pctService);
+                try
+                {
+                    cleanupCmd.Run();
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
             }
 
-            logger.Printf("\n[2/2] Running deploy...");
+            logger.Printf("\n[2/2] Running deploy{0}...", planOnly ? " (plan only)" : "");
             var deployCmd = new DeployCommand(cfg, lxcService, pctService);
-            deployCmd.Run(startStep, endStepPtr, false);
+            deployCmd.Run(startStep, endStepPtr, planOnly);
 
-            logger.Printf("=== Redeploy completed! ===");
+            if (!planOnly)
+            {
+                logger.Printf("=== Redeploy completed! ===");
+            }
+
+            // Run these also in planonly mode for now (to test them)
+            // Order matters: update SSH key first so get-ready-kubectl can SSH to control node without host key errors
+            if (updateSshKey)
+            {
+                int rc = RunUpdateControlNodeSshKey(environment);
+                if (rc != 0)
+                    throw new Exception($"update-control-node-ssh-key failed with exit code {rc}");
+            }
+            if (getReadyKubectl)
+            {
+                int rc = RunGetReadyKubectl(environment);
+                if (rc != 0)
+                    throw new Exception($"get-ready-kubectl failed with exit code {rc}");
+            }
         }
         finally
         {
@@ -409,5 +487,19 @@ class Program
         var pctService = new PCTService(lxcService);
         var restoreCmd = new RestoreCommand(cfg, lxcService, pctService);
         restoreCmd.Run(backupName);
+    }
+
+    private static int RunUpdateControlNodeSshKey(string environment)
+    {
+        var cfg = GetConfig(environment);
+        var cmd = new UpdateControlNodeSshKeyCommand(cfg, environment);
+        return cmd.Run();
+    }
+
+    private static int RunGetReadyKubectl(string environment)
+    {
+        var cfg = GetConfig(environment);
+        var cmd = new GetReadyKubectlCommand(cfg, environment);
+        return cmd.Run();
     }
 }
