@@ -8,6 +8,7 @@ environments:
     dns_server: "10.11.4.17"
     domain: "dev.net"
     branch: "dev"
+    argocd_apps_path: "overlays/dev"
     lxc:
       host: "root@10.11.4.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
@@ -20,6 +21,7 @@ environments:
     dns_server: "10.11.3.17"
     domain: "test.net"
     branch: "test"
+    argocd_apps_path: "overlays/test"
     lxc:
       host: "root@10.11.3.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
@@ -32,6 +34,7 @@ environments:
     dns_server: "10.11.2.17"
     domain: "prod.net"
     branch: "main"
+    argocd_apps_path: "overlays/prod"
     lxc:
       host: "root@10.11.2.4" # do not use ssh or pct, use configured local kubectl
       storage: "sdb"
@@ -173,13 +176,13 @@ kubernetes:
     - install metallb
     - update haproxy configuration
     - install dnsdist
+    - install olm
+    - create freeipa credentials
     - install argocd
     - create github runner secret
     - name: install argocd apps
       properties:
         repo_url: "https://github.com/swipentap/envaapps"
-        path: "applications"
-        target_revision: "main"
 
 # NOT REQUESTED: Script timeouts (in seconds)
 timeouts:
