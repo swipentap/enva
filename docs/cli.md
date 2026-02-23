@@ -7,6 +7,7 @@ EnvA is a CLI for deploying and managing Kubernetes (k3s) clusters and supportin
 - **`-v, --verbose`**: Show stdout from SSH service and enable debug-level logging.
 - **`-c, --config`**: Path to YAML configuration file (default: `enva.yaml` in `AppContext.BaseDirectory` or current directory).
 - **`--github-token`**: GitHub token for creating GitHub runner secrets (used during deploy when applicable).
+- **`--freeipa-admin-password`**: FreeIPA admin password for creating the `freeipa-credentials` secret in the `freeipa` namespace (used during deploy when applicable).
 
 #### Commands
 

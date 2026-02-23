@@ -27,10 +27,10 @@ enva init --force        # overwrite existing enva.yaml
 
 The schema is defined in `Libs/ConfigLoader.cs` and `Libs/LabConfig.cs`. The configuration typically includes:
 
-- **`environments`**: Per-environment settings (id-base, network, domain, branch, LXC host, storage, bridge, template_dir, etc.).
+- **`environments`**: Per-environment settings (id-base, network, domain, branch, argocd_apps_path, LXC host, storage, bridge, template_dir, etc.). `argocd_apps_path` sets the kustomize overlay path passed to `install argocd apps` (e.g. `overlays/dev`).
 - **`templates`**: Base template definitions (name, id, resources, actions).
 - **`ct`**: Container definitions (haproxy, k3s-control, k3s-workers, etc.) with template, resources, params, and actions.
-- **`kubernetes`**: Control/worker node IDs, and actions (e.g. install metallb, install argocd, install argocd apps).
+- **`kubernetes`**: Control/worker node IDs, and actions (e.g. install metallb, install olm, create freeipa credentials, install argocd, install argocd apps). `install argocd apps` reads `argocd_apps_path` from the environment config for the kustomize overlay path.
 - **`timeouts`**, **`users`**, **`services`**, **`dns`**, **`template_config`**, **`waits`**, **`glusterfs`**: Optional sections for timeouts, users, service ports, DNS, template patterns, and GlusterFS.
 
 #### Best practices

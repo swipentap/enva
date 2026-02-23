@@ -43,7 +43,7 @@ Use `--config` / `-c` to point at a config file; default is `enva.yaml` in the c
 
 **Deploy options:** `--start-step`, `--end-step`, `--planonly`, `--update-control-node-ssh-key`, `--get-ready-kubectl`
 
-**Global options:** `--config` / `-c`, `--verbose` / `-v`, `--github-token`
+**Global options:** `--config` / `-c`, `--verbose` / `-v`, `--github-token`, `--freeipa-admin-password`
 
 ## Documentation
 
