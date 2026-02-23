@@ -32,6 +32,7 @@ public static class ActionInit
         ActionRegistry.RegisterAction("update haproxy configuration", UpdateHaproxyConfigurationActionFactory.NewUpdateHaproxyConfigurationAction);
         ActionRegistry.RegisterAction("install dnsdist", InstallDnsdistActionFactory.NewInstallDnsdistAction);
         ActionRegistry.RegisterAction("install metallb", InstallMetalLBActionFactory.NewInstallMetalLBAction);
+        ActionRegistry.RegisterAction("install olm", InstallOLMActionFactory.NewInstallOLMAction);
         ActionRegistry.RegisterAction("create freeipa credentials", CreateFreeipaCredentialsActionFactory.NewCreateFreeipaCredentialsAction);
     }
 }
