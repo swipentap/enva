@@ -48,24 +48,16 @@ public class InstallArgoCDAppsAction : BaseAction, IAction
         {
             repoUrl = "https://github.com/swipentap/envaapps";
         }
-        string path = properties != null && properties.TryGetValue("path", out object? pathObj)
-            ? pathObj?.ToString() ?? "applications"
-            : "applications";
+        string path = !string.IsNullOrEmpty(Cfg.ArgoAppsPath)
+            ? Cfg.ArgoAppsPath
+            : (properties != null && properties.TryGetValue("path", out object? pathObj)
+                ? pathObj?.ToString() ?? "applications"
+                : "applications");
         string targetRevision = !string.IsNullOrEmpty(Cfg.ArgoAppsBranch)
             ? Cfg.ArgoAppsBranch
             : (properties != null && properties.TryGetValue("target_revision", out object? revisionObj)
                 ? revisionObj?.ToString() ?? "main"
                 : "main");
-
-        // Derive overlay path from Domain when path is default (e.g. dev.net -> overlays/dev)
-        if (!string.IsNullOrEmpty(Cfg.Domain))
-        {
-            string[] domainParts = Cfg.Domain.Split('.');
-            if (domainParts.Length > 0 && !string.IsNullOrEmpty(domainParts[0]) && path == "applications")
-            {
-                path = "overlays/" + domainParts[0];
-            }
-        }
 
         if (string.IsNullOrEmpty(repoUrl))
         {

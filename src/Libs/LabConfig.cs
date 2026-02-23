@@ -469,6 +469,9 @@ public class LabConfig
     /// <summary>Git branch for the Argo app-of-apps repo (targetRevision) when installing ArgoCD apps.</summary>
     public string? ArgoAppsBranch { get; set; }
 
+    /// <summary>Explicit path within the envaapps repo for the ArgoCD root-apps Application (e.g. overlays/dev).</summary>
+    public string? ArgoAppsPath { get; set; }
+
     public string? CertificatePath { get; set; }
     public string? CertificateSourcePath { get; set; }
     

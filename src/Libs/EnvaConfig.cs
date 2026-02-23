@@ -75,6 +75,10 @@ public class EnvironmentConfig
     [YamlMember(Alias = "branch")]
     public string? Branch { get; set; }
 
+    /// <summary>Explicit path within the envaapps repo for the ArgoCD root-apps Application (e.g. overlays/dev).</summary>
+    [YamlMember(Alias = "argocd_apps_path")]
+    public string? ArgoAppsPath { get; set; }
+
     [YamlMember(Alias = "certificate_path")]
     public string? CertificatePath { get; set; }
 

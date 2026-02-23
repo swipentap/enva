@@ -15,6 +15,7 @@ class Program
     private static bool verbose = false;
     private static string configFile = "";
     private static string githubToken = "";
+    private static string freeipaAdminPassword = "";
 
     static int Main(string[] args)
     {
@@ -69,6 +70,12 @@ class Program
                 "GitHub token for creating GitHub runner secrets");
             rootCommand.AddGlobalOption(githubTokenOption);
 
+            var freeipaAdminPasswordOption = new Option<string>(
+                "--freeipa-admin-password",
+                () => "",
+                "FreeIPA admin password for creating freeipa-credentials secret");
+            rootCommand.AddGlobalOption(freeipaAdminPasswordOption);
+
             // Deploy command
             var deployCommand = new Command("deploy", "Deploy complete environment: apt-cache, templates, and Docker Swarm");
             var deployEnvironmentArgument = new Argument<string>("environment", "Environment name");
@@ -101,6 +108,7 @@ class Program
                 verbose = pr.GetValueForOption(verboseOption);
                 configFile = pr.GetValueForOption(configOption) ?? "";
                 githubToken = pr.GetValueForOption(githubTokenOption) ?? "";
+                freeipaAdminPassword = pr.GetValueForOption(freeipaAdminPasswordOption) ?? "";
                 string environment = pr.GetValueForArgument(deployEnvironmentArgument) ?? "";
                 int startStep = pr.GetValueForOption(deployStartStepOption);
                 int endStep = pr.GetValueForOption(deployEndStepOption);
@@ -171,6 +179,7 @@ class Program
                 verbose = pr.GetValueForOption(verboseOption);
                 configFile = pr.GetValueForOption(configOption) ?? "";
                 githubToken = pr.GetValueForOption(githubTokenOption) ?? "";
+                freeipaAdminPassword = pr.GetValueForOption(freeipaAdminPasswordOption) ?? "";
                 string environment = pr.GetValueForArgument(redeployEnvironmentArgument) ?? "";
                 int startStep = pr.GetValueForOption(redeployStartStepOption);
                 int endStep = pr.GetValueForOption(redeployEndStepOption);
@@ -291,6 +300,10 @@ class Program
         {
             Environment.SetEnvironmentVariable("ENVA_GITHUB_TOKEN", githubToken);
         }
+        if (!string.IsNullOrEmpty(freeipaAdminPassword))
+        {
+            Environment.SetEnvironmentVariable("ENVA_FREEIPA_ADMIN_PASSWORD", freeipaAdminPassword);
+        }
 
         var cfg = GetConfig(environment);
 
@@ -339,6 +352,10 @@ class Program
         if (!string.IsNullOrEmpty(githubToken))
         {
             Environment.SetEnvironmentVariable("ENVA_GITHUB_TOKEN", githubToken);
+        }
+        if (!string.IsNullOrEmpty(freeipaAdminPassword))
+        {
+            Environment.SetEnvironmentVariable("ENVA_FREEIPA_ADMIN_PASSWORD", freeipaAdminPassword);
         }
 
         var cfg = GetConfig(environment);
