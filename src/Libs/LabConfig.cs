@@ -466,6 +466,12 @@ public class LabConfig
     public string APTCacheCT { get; set; } = "";
     public string? Domain { get; set; }
 
+    /// <summary>Current environment name (e.g. dev, test, prod).</summary>
+    public string? Environment { get; set; }
+
+    /// <summary>Vault secrets to seed: path → key/value pairs. Path becomes secret/{env}/{path} in Vault KV v2.</summary>
+    public Dictionary<string, Dictionary<string, string>>? VaultSecrets { get; set; }
+
     /// <summary>Git branch for the Argo app-of-apps repo (targetRevision) when installing ArgoCD apps.</summary>
     public string? ArgoAppsBranch { get; set; }
 

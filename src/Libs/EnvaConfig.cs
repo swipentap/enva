@@ -52,6 +52,9 @@ public class EnvaConfig
 
     [YamlMember(Alias = "backup")]
     public BackupConfig? Backup { get; set; }
+
+    [YamlMember(Alias = "vault_secrets")]
+    public Dictionary<string, Dictionary<string, string>>? VaultSecrets { get; set; }
 }
 
 /// <summary>

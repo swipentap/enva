@@ -276,6 +276,19 @@ public class InstallVaultAction : BaseAction, IAction
             }
             logger.Printf("external-secrets role created.");
 
+            // Store root token as K8s secret for later use (e.g. seed vault secrets)
+            logger.Printf("Storing Vault root token as K8s secret vault-root-token in vault namespace...");
+            string storeTokenCmd = $"{k8sEnv} && kubectl create secret generic vault-root-token -n vault --from-literal=token={rootToken} --dry-run=client -o yaml | kubectl apply -f -";
+            (string storeTokenOutput, int? storeTokenExit) = pctService.Execute(controlID, storeTokenCmd, 30);
+            if (storeTokenExit.HasValue && storeTokenExit.Value != 0)
+            {
+                logger.Printf("Warning: failed to store vault root token as K8s secret: {0}", storeTokenOutput);
+            }
+            else
+            {
+                logger.Printf("Vault root token stored in secret vault-root-token/token in namespace vault.");
+            }
+
             logger.Printf("Vault installed and configured successfully.");
             logger.Printf("Root Token: {0}", rootToken);
             return true;
