@@ -82,16 +82,18 @@ public class InstallVaultAction : BaseAction, IAction
                 }
             }
 
-            // Check/install helm
+            // Check/install helm using full path to avoid PATH issues in pct exec
             logger.Printf("Checking if helm is available...");
-            string helmCheckCmd = "command -v helm && echo installed || echo not_installed";
+            string helmCheckCmd = "test -f /usr/local/bin/helm && echo installed || echo not_installed";
             (string helmCheck, _) = pctService.Execute(controlID, helmCheckCmd, 30);
             if (helmCheck.Contains("not_installed"))
             {
                 logger.Printf("Installing helm...");
                 string installHelmCmd = "curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash";
-                (string helmInstallOutput, int? helmInstallExit) = pctService.Execute(controlID, installHelmCmd, 120);
-                if (helmInstallExit.HasValue && helmInstallExit.Value != 0)
+                (string helmInstallOutput, _) = pctService.Execute(controlID, installHelmCmd, 120);
+                // Verify helm is available after install attempt (script may exit non-zero on overwrite)
+                (string helmVerify, _) = pctService.Execute(controlID, "test -f /usr/local/bin/helm && echo installed || echo not_installed", 30);
+                if (!helmVerify.Contains("installed"))
                 {
                     logger.Printf("Failed to install helm: {0}", helmInstallOutput);
                     return false;
