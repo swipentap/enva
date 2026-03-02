@@ -33,6 +33,7 @@ public static class ActionInit
         ActionRegistry.RegisterAction("install dnsdist", InstallDnsdistActionFactory.NewInstallDnsdistAction);
         ActionRegistry.RegisterAction("install metallb", InstallMetalLBActionFactory.NewInstallMetalLBAction);
         ActionRegistry.RegisterAction("install olm", InstallOLMActionFactory.NewInstallOLMAction);
+        ActionRegistry.RegisterAction("install vault", InstallVaultActionFactory.NewInstallVaultAction);
         ActionRegistry.RegisterAction("create freeipa credentials", CreateFreeipaCredentialsActionFactory.NewCreateFreeipaCredentialsAction);
     }
 }
