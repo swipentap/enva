@@ -227,6 +227,21 @@ public class InstallMetalLBAction : BaseAction, IAction
                 }
             }
 
+            Logger.GetLogger("install_metallb").Printf("Waiting for MetalLB webhook endpoint...");
+            int webhookWait = 0;
+            while (webhookWait < 60)
+            {
+                string webhookCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get endpoints webhook-service -n metallb-system -o jsonpath='{.subsets}' 2>&1";
+                (string webhookOutput, _) = pctService.Execute(controlID, webhookCmd, 10);
+                if (!string.IsNullOrEmpty(webhookOutput) && webhookOutput.Contains("addresses"))
+                {
+                    Logger.GetLogger("install_metallb").Printf("MetalLB webhook endpoint ready");
+                    break;
+                }
+                Thread.Sleep(5000);
+                webhookWait += 5;
+            }
+
             Logger.GetLogger("install_metallb").Printf("Configuring MetalLB IPAddressPool and L2Advertisement...");
             
             // Get IP pool range from network configuration
