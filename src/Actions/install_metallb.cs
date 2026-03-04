@@ -228,7 +228,8 @@ public class InstallMetalLBAction : BaseAction, IAction
             }
 
             // Read and log MetalLB pod logs, stop if error detected
-            Logger.GetLogger("install_metallb").Printf("Reading MetalLB pod logs...");
+            var podLogger = Logger.GetLogger("install_metallb").WithConnection("pct", controlID.ToString());
+            podLogger.Printf("Reading MetalLB pod logs...");
             string getPodNamesCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get pods -n metallb-system --no-headers -o custom-columns=NAME:.metadata.name 2>&1";
             (string podNamesOutput, _) = pctService.Execute(controlID, getPodNamesCmd, 10);
             foreach (string podLine in podNamesOutput.Split('\n'))
@@ -241,12 +242,12 @@ public class InstallMetalLBAction : BaseAction, IAction
                 {
                     string trimmed = logLine.Trim();
                     if (string.IsNullOrWhiteSpace(trimmed)) continue;
-                    Logger.GetLogger("install_metallb").Printf("[{0}] {1}", podName, trimmed);
                     if (Regex.IsMatch(trimmed, @"\b(error|fatal|panic)\b", RegexOptions.IgnoreCase))
                     {
-                        Logger.GetLogger("install_metallb").Printf("Error detected in MetalLB pod {0} logs: {1}", podName, trimmed);
+                        podLogger.Error("[{0}] {1}", podName, trimmed);
                         return false;
                     }
+                    podLogger.Printf("[{0}] {1}", podName, trimmed);
                 }
             }
 

@@ -17,12 +17,19 @@ public class Logger
     private readonly string name;
     private readonly TextWriter writer;
     private readonly LogLevel level;
+    private readonly string? connContext;
 
-    private Logger(string name, TextWriter writer, LogLevel level)
+    private Logger(string name, TextWriter writer, LogLevel level, string? connContext = null)
     {
         this.name = name;
         this.writer = writer;
         this.level = level;
+        this.connContext = connContext;
+    }
+
+    public Logger WithConnection(string connType, string host)
+    {
+        return new Logger(name, writer, level, $"{connType} {host}");
     }
 
     public static Logger InitLogger(LogLevel level, string logFilePath, bool alwaysLogToFile)
@@ -78,7 +85,7 @@ public class Logger
             return new Logger(name, Console.Out, LogLevel.Info);
         }
         
-        return new Logger(name, defaultLogger.writer, logLevel);
+        return new Logger(name, defaultLogger.writer, logLevel, null);
     }
 
     public static Logger GetDefaultLogger()
@@ -101,7 +108,8 @@ public class Logger
         var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         var message = args.Length > 0 ? string.Format(format, args) : format;
         var levelStr = level.ToString().ToUpper();
-        // Format: timestamp - logger_name (25 chars, left-aligned) - level - message
+        if (!string.IsNullOrEmpty(connContext))
+            return $"{timestamp} [{connContext}] - {name,-25} - {levelStr} - {message}\n";
         return $"{timestamp} - {name,-25} - {levelStr} - {message}\n";
     }
 
