@@ -227,6 +227,29 @@ public class InstallMetalLBAction : BaseAction, IAction
                 }
             }
 
+            // Read and log MetalLB pod logs, stop if error detected
+            Logger.GetLogger("install_metallb").Printf("Reading MetalLB pod logs...");
+            string getPodNamesCmd = "export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get pods -n metallb-system --no-headers -o custom-columns=NAME:.metadata.name 2>&1";
+            (string podNamesOutput, _) = pctService.Execute(controlID, getPodNamesCmd, 10);
+            foreach (string podLine in podNamesOutput.Split('\n'))
+            {
+                string podName = podLine.Trim();
+                if (string.IsNullOrWhiteSpace(podName)) continue;
+                string logsCmd = $"export PATH=/usr/local/bin:$PATH && export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl logs -n metallb-system {podName} --tail=50 2>&1";
+                (string logsOutput, _) = pctService.Execute(controlID, logsCmd, 15);
+                foreach (string logLine in logsOutput.Split('\n'))
+                {
+                    string trimmed = logLine.Trim();
+                    if (string.IsNullOrWhiteSpace(trimmed)) continue;
+                    Logger.GetLogger("install_metallb").Printf("[{0}] {1}", podName, trimmed);
+                    if (Regex.IsMatch(trimmed, @"\b(error|fatal|panic)\b", RegexOptions.IgnoreCase))
+                    {
+                        Logger.GetLogger("install_metallb").Printf("Error detected in MetalLB pod {0} logs: {1}", podName, trimmed);
+                        return false;
+                    }
+                }
+            }
+
             Logger.GetLogger("install_metallb").Printf("Configuring MetalLB IPAddressPool and L2Advertisement...");
             
             // Get IP pool range from network configuration
